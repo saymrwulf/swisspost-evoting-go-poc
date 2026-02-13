@@ -1,0 +1,9 @@
+# Compiled binary (root only, not cmd/evote/)
+/evote
+*.exe
+
+# Test artifacts
+testdata/*.json
+
+# macOS
+.DS_Store

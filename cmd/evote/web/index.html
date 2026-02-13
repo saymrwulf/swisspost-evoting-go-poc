@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Swiss Post E-Voting</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    color: #24292f;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    height: 100vh;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* === HOME VIEW === */
+  #home-view {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .home-title { text-align: center; margin-bottom: 48px; }
+  .home-title .flag { font-size: 60px; margin-bottom: 20px; }
+  .home-title h1 { font-size: 28px; color: #1f2328; font-weight: 800; }
+  .home-title .sub { font-size: 16px; color: #57606a; margin-top: 8px; }
+
+  .cards {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    justify-content: center; max-width: 1000px;
+  }
+  .card {
+    background: #ffffff; border: 1px solid #d0d7de; border-radius: 16px;
+    padding: 32px 28px; width: 280px; cursor: pointer;
+    transition: all 0.2s ease; text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .card:hover, .card:active {
+    border-color: #0969da; box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px);
+  }
+  .card .icon { font-size: 40px; margin-bottom: 16px; }
+  .card .card-title { font-size: 17px; font-weight: 700; color: #1f2328; margin-bottom: 8px; }
+  .card .card-desc { font-size: 14px; color: #57606a; line-height: 1.7; }
+  .card .card-meta { font-size: 12px; color: #8b949e; margin-top: 12px; }
+
+  .manual-link {
+    margin-top: 36px; text-align: center;
+  }
+  .manual-link a {
+    color: #57606a; font-size: 14px; text-decoration: none;
+    border-bottom: 1px solid #d0d7de; padding-bottom: 2px;
+    cursor: pointer;
+  }
+  .manual-link a:hover { color: #0969da; border-color: #0969da; }
+
+  /* === DECK VIEW (iframe) === */
+  #deck-view {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10;
+  }
+  #deck-view iframe { width: 100%; height: 100%; border: none; }
+
+  /* === MANUAL VIEW === */
+  #manual-view {
+    height: 100vh; overflow-y: auto;
+    padding: 0 30px 80px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-bar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid #d8dee4;
+    display: flex; align-items: center;
+    padding: 12px 0; margin-bottom: 20px;
+  }
+  .nav-btn {
+    background: none; border: 1px solid #d0d7de; color: #57606a;
+    padding: 8px 16px; border-radius: 8px; font-family: inherit;
+    font-size: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    min-height: 44px; display: flex; align-items: center;
+  }
+  .nav-btn:hover, .nav-btn:active { border-color: #0969da; color: #0969da; }
+  .nav-title { flex: 1; text-align: center; font-size: 14px; color: #57606a; font-weight: 600; }
+
+  .mc { max-width: 880px; margin: 0 auto; }
+  .mc h2 {
+    font-size: 22px; color: #1f2328;
+    border-bottom: 2px solid #d8dee4; padding-bottom: 8px;
+    margin-bottom: 20px; margin-top: 40px;
+  }
+  .mc h3 {
+    font-size: 17px; color: #1f2328; margin-top: 24px; margin-bottom: 10px;
+    border-bottom: 1px solid #e8ebef; padding-bottom: 4px;
+  }
+  .mc h4 { font-size: 15px; color: #24292f; margin-top: 16px; margin-bottom: 8px; font-style: italic; }
+  .mc p { margin-bottom: 10px; }
+  .mc ul, .mc ol { margin: 8px 0 12px 24px; }
+  .mc li { margin-bottom: 4px; }
+  .mc strong { color: #1f2328; }
+  .mc em { color: #24292f; }
+  .mc code {
+    color: #0550ae; font-size: 14px;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    background: #f6f8fa; padding: 1px 5px; border-radius: 4px;
+  }
+
+  .mc .role-header {
+    background: #f6f8fa; border: 1px solid #d8dee4; border-left: 4px solid #0969da;
+    padding: 14px 18px; margin: 16px 0; border-radius: 0 8px 8px 0;
+  }
+  .mc .role-header .role-name { font-weight: 700; font-size: 16px; color: #1f2328; }
+  .mc .role-header .role-desc { font-size: 14px; color: #57606a; margin-top: 4px; }
+
+  .mc .code-block {
+    background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 8px;
+    padding: 12px 16px; margin: 10px 0; font-size: 14px; line-height: 1.5;
+    overflow-x: auto; white-space: pre; color: #24292f;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+  }
+  .mc .step {
+    border: 1px solid #d8dee4; border-radius: 10px;
+    padding: 14px 18px; margin: 12px 0; background: #f6f8fa;
+  }
+  .mc .step-num {
+    display: inline-block; background: #0969da; color: #ffffff;
+    width: 26px; height: 26px; border-radius: 50%; text-align: center;
+    line-height: 26px; font-size: 13px; font-weight: 700; margin-right: 10px;
+  }
+  .mc .step-title { font-weight: 700; display: inline; color: #1f2328; }
+
+  .mc .warning {
+    background: #fff8c5; border-left: 4px solid #d4a72c;
+    padding: 12px 16px; margin: 12px 0; font-size: 14px; color: #6f4e00;
+    border-radius: 0 8px 8px 0;
+  }
+  .mc .warning::before { content: 'Warning: '; font-weight: 700; color: #9a6700; }
+  .mc .note-box {
+    background: #ddf4ff; border-left: 4px solid #218bff;
+    padding: 12px 16px; margin: 12px 0; font-size: 14px; color: #0a3069;
+    border-radius: 0 8px 8px 0;
+  }
+  .mc .note-box::before { content: 'Note: '; font-weight: 700; color: #0969da; }
+  .mc .legal-box {
+    background: #fbefff; border-left: 4px solid #a475f9;
+    padding: 12px 16px; margin: 12px 0; font-size: 14px; color: #512a97; font-style: italic;
+    border-radius: 0 8px 8px 0;
+  }
+  .mc .legal-box::before { content: 'Legal basis: '; font-weight: 700; font-style: normal; color: #8250df; }
+
+  .mc table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  .mc th, .mc td { padding: 8px 12px; border: 1px solid #d8dee4; text-align: left; }
+  .mc th { background: #f6f8fa; font-weight: 700; color: #1f2328; }
+  .mc td { color: #24292f; }
+
+  .mc .checklist { list-style: none; margin-left: 0; }
+  .mc .checklist li::before { content: '\2610\00a0'; font-size: 16px; }
+  .mc .separator { border-top: 1px solid #d8dee4; margin: 20px 0; }
+
+  .hide { display: none !important; }
+
+  @media (max-width: 700px) {
+    .cards { gap: 16px; }
+    .card { width: 100%; max-width: 340px; padding: 24px 20px; }
+    .home-title h1 { font-size: 22px; }
+    .home-title .flag { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== HOME VIEW ========== -->
+<div id="home-view">
+  <div class="home-title">
+    <div class="flag">&#x1F1E8;&#x1F1ED;</div>
+    <h1>Swiss Post E-Voting</h1>
+    <div class="sub">Choose a presentation</div>
+  </div>
+  <div class="cards">
+    <div class="card" onclick="openDeck('demo')">
+      <div class="icon">&#x1F5F3;&#xFE0F;</div>
+      <div class="card-title">Interactive Demo</div>
+      <div class="card-desc">Run a full election step by step. Play every role: Chancellor, CC Operator, Voter, Auditor.</div>
+      <div class="card-meta">27 slides</div>
+    </div>
+    <div class="card" onclick="openDeck('crypto')">
+      <div class="icon">&#x1F510;</div>
+      <div class="card-title">Cryptography Lecture</div>
+      <div class="card-desc">Undergraduate-level lecture. Groups, ElGamal, ZK proofs, Bayer-Groth, then a live election.</div>
+      <div class="card-meta">40 slides &middot; 5 parts</div>
+    </div>
+    <div class="card" onclick="openDeck('swe')">
+      <div class="icon">&#x1F3D7;&#xFE0F;</div>
+      <div class="card-title">Software Engineering</div>
+      <div class="card-desc">How to structure a 6,500-line Go codebase. Types, patterns, architecture, error handling.</div>
+      <div class="card-meta">34 slides &middot; 8 parts</div>
+    </div>
+  </div>
+  <div class="manual-link">
+    <a onclick="showManual()">Operations Manual</a>
+  </div>
+</div>
+
+<!-- ========== DECK VIEW (iframe) ========== -->
+<div id="deck-view" class="hide">
+  <iframe id="deck-iframe" src="about:blank"></iframe>
+</div>
+
+<!-- ========== MANUAL VIEW ========== -->
+<div id="manual-view" class="hide">
+<div class="mc">
+  <div class="nav-bar">
+    <button class="nav-btn" onclick="goHome()">&#8592; Home</button>
+    <div class="nav-title">Operations Manual</div>
+    <div style="width:60px"></div>
+  </div>
+
+<h2>1. Introduction</h2>
+
+<h3>1.1 Purpose of This Manual</h3>
+<p>This manual provides step-by-step operational procedures for all participants in the Swiss Post e-voting election ceremony, as implemented in the Go proof-of-concept (PoC) system <code>evote</code>.</p>
+<p>The Go PoC reimplements the cryptographic core of the production Swiss Post e-voting system in approximately 6,500 lines of Go. It uses the same algorithms (ElGamal encryption, Schnorr proofs, Bayer-Groth verifiable shuffle) but operates as a single-machine, command-line tool rather than a distributed multi-server deployment.</p>
+<p>Despite the simplified infrastructure, the Go PoC preserves the <strong>same role structure</strong> as the production system. Each role's responsibilities, trust boundaries, and ceremony steps are faithfully reproduced.</p>
+
+<h3>1.2 System Overview</h3>
+<p>The e-voting system operates in three phases across three days:</p>
+<table>
+  <tr><th>Phase</th><th>Day</th><th>Key Operations</th><th>Primary Roles</th></tr>
+  <tr><td>Configuration</td><td>Day 1</td><td>Key generation, voting card creation, system setup</td><td>Cantonal Admin, CC Operators</td></tr>
+  <tr><td>Release &amp; Voting</td><td>Day 2 + Voting Period</td><td>Electoral Board constitution, setup verification, ballot casting</td><td>Electoral Board, Verifier, Voters</td></tr>
+  <tr><td>Tally</td><td>Day 3</td><td>Mixing, decryption, tally verification, result publication</td><td>CC Operators, Electoral Board, Verifier</td></tr>
+</table>
+
+<h3>1.3 Role Structure &amp; Legal Basis</h3>
+<div class="legal-box">The role structure follows the Ordinance on Electronic Voting (OEV/VEleS) issued by the Federal Chancellery (Bundeskanzlei). All operational roles, trust boundaries, and separation-of-duties requirements are mandated by law.</div>
+<p>The following organizational hierarchy applies:</p>
+<div class="code-block">Federal Chancellery (Bundeskanzlei)
+  |-- Issues OEV Ordinance, commissions independent examiners
+  |
+  +-- Cantons (each independent)
+       |-- Electoral Board (>= 2 members)
+       |     +-- Verifier Operator
+       |
+       |-- Cantonal Administrator
+       |     +-- Operates SDM (Setup, Online, Tally)
+       |     +-- Manages 1 Control Component
+       |     +-- Manages Printing Office
+       |
+       +-- Contracts with Swiss Post (System Provider)
+            |-- Operates Voting Server, Access Layer
+            +-- Operates 3 of 4 Control Components (separate teams)</div>
+<div class="note-box">In the Go PoC, all roles are exercised by the same person on the same machine via different <code>evote</code> subcommands. In production, these roles are performed by <strong>different people on different machines</strong> with strict access controls.</div>
+
+<h3>1.4 Prerequisites</h3>
+<ul>
+  <li>The <code>evote</code> binary (build with <code>go build ./cmd/evote</code>)</li>
+  <li>Go 1.21 or later (only for building; the binary is self-contained)</li>
+  <li>A terminal (macOS Terminal, Linux shell, or Windows command prompt)</li>
+  <li>No network access, database, or external services required</li>
+</ul>
+<div class="code-block"># Build the binary
+cd evote/
+go build -o evote ./cmd/evote
+./evote --help</div>
+
+<h2>2. Cantonal Administrator</h2>
+
+<h3>2.1 Role Description</h3>
+<div class="role-header">
+  <div class="role-name">Cantonal Administrator (Kantonale/r Administrator/in)</div>
+  <div class="role-desc">Operates the Secure Data Manager (SDM) and coordinates the election ceremony. Responsible for processing electoral data, managing the key generation ceremony, generating voting cards, and coordinating between all other roles.</div>
+</div>
+<div class="legal-box">The Cantonal Administrator operates the SDM under cantonal authority, <strong>not</strong> under Swiss Post. All personal data (electoral registers) remains exclusively at the canton. The four-eyes principle applies to all SDM operations.</div>
+
+<h3>2.2 Day 1 -- Configuration Phase</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Initialize the election and generate cryptographic parameters</div>
+  <p style="margin-top:8px;">Decide on the number of voters and ballot options.</p>
+  <div class="code-block"># Full automated ceremony:
+./evote demo --voters=6 --options=2</div>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-title">Coordinate Control Component key generation</div>
+  <p style="margin-top:8px;">The system generates key pairs for all 4 CCs and the Electoral Board. Each CC generates a Schnorr proof of knowledge.</p>
+  <div class="code-block">  CC0 (Bern):    Key generated, Schnorr proof VALID
+  CC1 (Zurich):  Key generated, Schnorr proof VALID
+  CC2 (Geneva):  Key generated, Schnorr proof VALID
+  CC3 (Lugano):  Key generated, Schnorr proof VALID</div>
+</div>
+<div class="step">
+  <span class="step-num">3</span>
+  <div class="step-title">Combine public keys into Election Public Key</div>
+  <p style="margin-top:8px;">The 5 public keys are multiplied together to form the joint Election Public Key.</p>
+  <div class="code-block">  ElectionPK = PK0 * PK1 * PK2 * PK3 * PK_EB mod p</div>
+</div>
+<div class="step">
+  <span class="step-num">4</span>
+  <div class="step-title">Generate voting cards</div>
+  <p style="margin-top:8px;">Each voter receives a unique voting card with SVK, BCK, Choice Return Codes, and Vote Cast Code.</p>
+</div>
+<div class="warning">In the Go PoC, voting cards are displayed on screen. In production, these are printed on physical paper and mailed to voters.</div>
+
+<h3>2.3 Day 2 -- Release Phase</h3>
+<p>The Cantonal Administrator coordinates the Electoral Board constitution and triggers setup verification. Once verification passes, the voter portal is activated.</p>
+
+<h3>2.4 Day 3 -- Tally Phase</h3>
+<p>The Cantonal Administrator initiates mixing, coordinates Electoral Board password entry for decryption, and triggers tally verification.</p>
+
+<h2>3. Electoral Board</h2>
+
+<h3>3.1 Role Description</h3>
+<div class="role-header">
+  <div class="role-name">Electoral Board (Wahlbeh&ouml;rde / Commission &eacute;lectorale)</div>
+  <div class="role-desc">A group of at least 2 board members who collectively hold the 5th encryption key. Each member sets a password during setup; all members must enter their passwords to authorize decryption.</div>
+</div>
+<div class="legal-box">The Ordinance requires a minimum of 2 Electoral Board members. Each member's password must meet complexity requirements (minimum 24 characters in production). The board operates on air-gapped machines.</div>
+
+<h3>3.2 Constituting the Board (Day 2)</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Each board member sets a password</div>
+  <p style="margin-top:8px;">The combined passwords derive the Electoral Board's secret key via Argon2id.</p>
+  <div class="code-block">  EB member 1: enters password  -->  |
+  EB member 2: enters password  -->  |-- Argon2id --> sk_EB
+  EB member 3: enters password  -->  |
+
+  pk_EB = g^sk_EB mod p</div>
+</div>
+<div class="warning">If any board member forgets their password, the ballot box <strong>cannot be decrypted</strong>. There is no recovery mechanism.</div>
+
+<h3>3.3 Authorizing Decryption (Day 3)</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Enter passwords on the Tally SDM</div>
+  <p style="margin-top:8px;">After 4 CC shuffles, each board member enters their password to reconstruct the EB secret key.</p>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-title">Authorize the final shuffle and decryption</div>
+  <p style="margin-top:8px;">The system performs the 5th Bayer-Groth shuffle and removes the last encryption layer.</p>
+</div>
+<div class="note-box">The Electoral Board never sees which voter cast which vote. The 5 independent shuffles have permanently destroyed the link between voter identities and ballot contents.</div>
+
+<h2>4. Swiss Post -- System Provider</h2>
+
+<h3>4.1 Role Description</h3>
+<div class="role-header">
+  <div class="role-name">Swiss Post (Schweizerische Post / System Provider)</div>
+  <div class="role-desc">Develops and maintains the e-voting software. Operates the central infrastructure and 3 of 4 Control Components. Does <strong>not</strong> operate the SDM, Verifier, or the cantonal CC.</div>
+</div>
+
+<h3>4.2 Infrastructure &amp; Central Services</h3>
+<table>
+  <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+  <tr><td>Access Layer</td><td>WAF, TLS termination</td><td>Protects the Voting Server</td></tr>
+  <tr><td>Voting Server</td><td>Spring Boot, Kubernetes</td><td>Processes vote submissions</td></tr>
+  <tr><td>3 Control Components</td><td>Bare metal, diverse OS</td><td>Distributed key gen, return codes, shuffle</td></tr>
+  <tr><td>Message Broker</td><td>Apache ActiveMQ Artemis</td><td>Async communication</td></tr>
+  <tr><td>Databases</td><td>PostgreSQL</td><td>Encrypted ballots, config, audit logs</td></tr>
+</table>
+<div class="note-box">In the Go PoC, all of Swiss Post's infrastructure is simulated within the <code>evote</code> binary.</div>
+
+<h3>4.3 Red Phase (Voting Period)</h3>
+<ul>
+  <li>No system modifications permitted</li>
+  <li>Infrastructure access strictly controlled</li>
+  <li>SIEM monitoring active</li>
+  <li>Only pre-authorized personnel may access systems</li>
+</ul>
+
+<h2>5. Control Component Operators</h2>
+
+<h3>5.1 Role Description &amp; Split Trust</h3>
+<div class="role-header">
+  <div class="role-name">Control Component Operator (CC-Betreiber/in)</div>
+  <div class="role-desc">Each of the 4 Control Components is operated by a separate team. No person with access to one CC may have access to any other CC. Security guarantees hold as long as at least one CC is honest.</div>
+</div>
+<div class="legal-box">OEV Art. 3.15: "If a person has physical or logical access to a control component, that person may not have access to any other control component."</div>
+<table>
+  <tr><th>CC</th><th>Location</th><th>OS</th><th>Operated By</th></tr>
+  <tr><td>CC0</td><td>Canton premises</td><td>RHEL 9.6</td><td>Canton</td></tr>
+  <tr><td>CC1</td><td>Swiss Post DC</td><td>Debian 12.12</td><td>Swiss Post Team A</td></tr>
+  <tr><td>CC2</td><td>Swiss Post DC</td><td>Ubuntu 24.04</td><td>Swiss Post Team B</td></tr>
+  <tr><td>CC3</td><td>Swiss Post DC</td><td>Windows Server 2022</td><td>Swiss Post Team C</td></tr>
+</table>
+
+<h3>5.2 Key Generation (Setup Phase)</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Generate the key pair</div>
+  <p style="margin-top:8px;">Each CC generates sk = (sk[0], sk[1]) randomly from Z_q. Publishes pk = (g^sk[0], g^sk[1]).</p>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-title">Generate the Schnorr proof of knowledge</div>
+  <p style="margin-top:8px;">Non-interactive Schnorr proof (Fiat-Shamir) demonstrating knowledge of the secret key.</p>
+</div>
+<div class="step">
+  <span class="step-num">3</span>
+  <div class="step-title">Publish public key and proof</div>
+  <p style="margin-top:8px;">Transmitted to the central system for combination with other CCs' keys.</p>
+</div>
+
+<h3>5.3 Shuffle &amp; Partial Decryption (Tally Phase)</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Receive the current ciphertext batch</div>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-title">Generate a random permutation</div>
+</div>
+<div class="step">
+  <span class="step-num">3</span>
+  <div class="step-title">Re-encrypt and shuffle</div>
+</div>
+<div class="step">
+  <span class="step-num">4</span>
+  <div class="step-title">Generate the Bayer-Groth shuffle proof</div>
+  <p style="margin-top:8px;">Zero-knowledge proof with sub-linear O(&radic;N) size: ProductArgument, HadamardArgument, ZeroArgument, SingleValueProductArgument, MultiExponentiationArgument.</p>
+</div>
+<div class="step">
+  <span class="step-num">5</span>
+  <div class="step-title">Destroy the permutation</div>
+  <p style="margin-top:8px;">Securely erase the permutation and all re-encryption randomness.</p>
+</div>
+<div class="step">
+  <span class="step-num">6</span>
+  <div class="step-title">Perform partial decryption</div>
+  <p style="margin-top:8px;">Remove this CC's encryption layer.</p>
+</div>
+<div class="warning">The permutation must be destroyed <strong>immediately</strong> after the proof is generated.</div>
+
+<h2>6. Printing Office</h2>
+
+<h3>6.1 Role Description</h3>
+<div class="role-header">
+  <div class="role-name">Printing Office (Druckerei)</div>
+  <div class="role-desc">Prints and mails the physical voting cards. The voting card is the root of individual verifiability.</div>
+</div>
+
+<h3>6.2 Voting Card Generation &amp; Distribution</h3>
+<table>
+  <tr><th>Field</th><th>Purpose</th><th>Example</th></tr>
+  <tr><td>Start Voting Key (SVK)</td><td>Authentication credential</td><td>SVK-0000</td></tr>
+  <tr><td>Ballot Casting Key (BCK)</td><td>Vote confirmation credential</td><td>BCK-0000</td></tr>
+  <tr><td>Choice Return Codes</td><td>Verify correct recording</td><td>CC00, CC01</td></tr>
+  <tr><td>Vote Cast Code (VCC)</td><td>Confirm vote is sealed</td><td>VCC00</td></tr>
+</table>
+<div class="warning">Voting cards must be printed on physical paper and delivered via postal mail. The codes must <strong>never</strong> be transmitted electronically.</div>
+
+<h2>7. Voter</h2>
+
+<h3>7.1 Role Description</h3>
+<div class="role-header">
+  <div class="role-name">Voter (Stimmberechtigte/r)</div>
+  <div class="role-desc">An eligible citizen who casts a vote using the e-voting system. Interacts through a web browser and verifies using the physical voting card.</div>
+</div>
+
+<h3>7.2 Voting Procedure</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Open the voting portal</div>
+  <p style="margin-top:8px;">Navigate to the official URL. Verify the TLS certificate.</p>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-title">Authenticate</div>
+  <p style="margin-top:8px;">Enter your <strong>Start Voting Key (SVK)</strong> and <strong>date of birth</strong>.</p>
+</div>
+<div class="step">
+  <span class="step-num">3</span>
+  <div class="step-title">Cast your vote</div>
+  <p style="margin-top:8px;">Your browser encrypts the vote locally using ElGamal. <strong>The plaintext vote never leaves your device.</strong></p>
+</div>
+<div class="step">
+  <span class="step-num">4</span>
+  <div class="step-title">Verify the Choice Return Code</div>
+  <p style="margin-top:8px;">Compare the code on screen to your physical voting card. If they match, proceed. If not, <strong>STOP</strong>.</p>
+</div>
+<div class="step">
+  <span class="step-num">5</span>
+  <div class="step-title">Confirm with the Ballot Casting Key</div>
+  <p style="margin-top:8px;">Enter your <strong>BCK</strong> to finalize.</p>
+</div>
+<div class="step">
+  <span class="step-num">6</span>
+  <div class="step-title">Verify the Vote Cast Code</div>
+  <p style="margin-top:8px;">Compare the VCC on screen to your card. If it matches, your vote is sealed.</p>
+</div>
+
+<h3>7.3 Individual Verifiability</h3>
+<p>The return code mechanism provides <strong>individual verifiability</strong>: each voter can personally verify their vote was cast as intended and recorded as cast.</p>
+<div class="note-box">Even if your computer is compromised, the return codes on the physical card were generated independently by the 4 CCs during setup. A malware-modified vote would produce the wrong return code.</div>
+
+<h2>8. Independent Verifier</h2>
+
+<h3>8.1 Role Description</h3>
+<div class="role-header">
+  <div class="role-name">Verifier Operator (Pr&uuml;fer/in)</div>
+  <div class="role-desc">Operates verification software that independently checks all protocol steps. Runs on an offline machine under cantonal authority. Requires no secret keys.</div>
+</div>
+<div class="legal-box">The Verifier provides <strong>universal verifiability</strong>: any party can audit the election using only public data and mathematics.</div>
+
+<h3>8.2 Setup Verification (Day 2)</h3>
+<ul>
+  <li><strong>Key proofs:</strong> Verify Schnorr proof for each CC</li>
+  <li><strong>Key combination:</strong> Verify Election Public Key is correct product of all 5 keys</li>
+  <li><strong>Voting card integrity:</strong> Verify return code mappings</li>
+</ul>
+
+<h3>8.3 Tally Verification (Day 3)</h3>
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-title">Verify all Schnorr proofs (4 key proofs)</div>
+  <div class="code-block">  CC0 (Bern):    [PASS]
+  CC1 (Zurich):  [PASS]
+  CC2 (Geneva):  [PASS]
+  CC3 (Lugano):  [PASS]</div>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-title">Verify all Bayer-Groth shuffle proofs (5 shuffle proofs)</div>
+  <div class="code-block">  Shuffle 0 (CC0, Bern):       ==> VERIFIED
+  Shuffle 1 (CC1, Zurich):     ==> VERIFIED
+  Shuffle 2 (CC2, Geneva):     ==> VERIFIED
+  Shuffle 3 (CC3, Lugano):     ==> VERIFIED
+  Shuffle 4 (Electoral Board): ==> VERIFIED</div>
+</div>
+<div class="step">
+  <span class="step-num">3</span>
+  <div class="step-title">Verify ballot count consistency</div>
+  <div class="code-block">  Ballots submitted: 6
+  Ballots decrypted: 6
+  ==> PASS</div>
+</div>
+
+<h3>8.4 Interpreting Results</h3>
+<p>If all checks pass, the Verifier provides mathematical certainty that the election result is correct.</p>
+<div class="warning">If <strong>any</strong> check fails, the election result <strong>must not be published</strong>. Contact the Federal Chancellery immediately.</div>
+
+<h2>9. Federal Chancellery &amp; External Examiners</h2>
+
+<h3>9.1 Oversight Role</h3>
+<div class="role-header">
+  <div class="role-name">Federal Chancellery (Bundeskanzlei)</div>
+  <div class="role-desc">Issues the OEV Ordinance, commissions independent examinations, approves cantons for e-voting.</div>
+</div>
+
+<h3>9.2 Four Audit Scopes</h3>
+<table>
+  <tr><th>Scope</th><th>Subject</th><th>Examiner</th></tr>
+  <tr><td>Scope 1</td><td>Cryptographic protocol</td><td>Academic cryptographers</td></tr>
+  <tr><td>Scope 2</td><td>System software</td><td>Software security auditors</td></tr>
+  <tr><td>Scope 3</td><td>Infrastructure &amp; operations</td><td>Infrastructure security auditors</td></tr>
+  <tr><td>Scope 4</td><td>Penetration testing</td><td>Pen testers + bug bounty</td></tr>
+</table>
+
+<h2>Appendix A: Command Reference</h2>
+<table>
+  <tr><th>Command</th><th>Description</th><th>Key Flags</th></tr>
+  <tr><td><code>evote demo</code></td><td>Run a full election ceremony</td><td><code>--voters=N</code>, <code>--options=N</code></td></tr>
+  <tr><td><code>evote present</code></td><td>Interactive step-by-step presentation</td><td>(same as demo)</td></tr>
+  <tr><td><code>evote serve</code></td><td>Serve the web presentations</td><td><code>--port=N</code></td></tr>
+</table>
+<div class="code-block"># Minimal election
+./evote demo --voters=3 --options=2
+
+# Larger election
+./evote demo --voters=100 --options=5
+
+# Step-by-step presentation
+./evote present
+
+# Serve web presentations on local network
+./evote serve --port=8080</div>
+
+<h2>Appendix B: Ceremony Checklist</h2>
+
+<h3>Day 1 -- Configuration</h3>
+<ul class="checklist">
+  <li>Election parameters defined (voters, options)</li>
+  <li>Cryptographic group generated (safe prime p = 2q + 1)</li>
+  <li>CC0: key pair generated, Schnorr proof valid</li>
+  <li>CC1: key pair generated, Schnorr proof valid</li>
+  <li>CC2: key pair generated, Schnorr proof valid</li>
+  <li>CC3: key pair generated, Schnorr proof valid</li>
+  <li>Election Public Key computed</li>
+  <li>Candidate encoding computed</li>
+  <li>Voting cards generated for all voters</li>
+</ul>
+
+<h3>Day 2 -- Release</h3>
+<ul class="checklist">
+  <li>Electoral Board constituted, passwords set</li>
+  <li>EB key pair generated</li>
+  <li>Verifier: setup verification -- all PASS</li>
+  <li>Voter portal activated</li>
+  <li>Voting cards printed and mailed</li>
+</ul>
+
+<h3>Voting Period</h3>
+<ul class="checklist">
+  <li>All voters: authenticated, voted, verified, confirmed</li>
+  <li>System monitoring active (red phase)</li>
+</ul>
+
+<h3>Day 3 -- Tally</h3>
+<ul class="checklist">
+  <li>CC0: shuffle + proof + partial decrypt</li>
+  <li>CC1: shuffle + proof + partial decrypt</li>
+  <li>CC2: shuffle + proof + partial decrypt</li>
+  <li>CC3: shuffle + proof + partial decrypt</li>
+  <li>Electoral Board: final shuffle + full decryption</li>
+  <li>Votes decoded, result tallied</li>
+  <li>Verifier: 4 key proofs -- all PASS</li>
+  <li>Verifier: 5 shuffle proofs -- all PASS</li>
+  <li>Verifier: ballot count -- PASS</li>
+  <li>Result published</li>
+</ul>
+
+<h2>Appendix C: Production vs. Go PoC</h2>
+<table>
+  <tr><th>Aspect</th><th>Production</th><th>Go PoC</th></tr>
+  <tr><td>Language</td><td>Java 21 + TS + C#</td><td>Go</td></tr>
+  <tr><td>Prime size</td><td>3072 bits</td><td>256 bits (demo)</td></tr>
+  <tr><td>Infrastructure</td><td>Kubernetes + 4 bare-metal CCs + SDM</td><td>Single binary</td></tr>
+  <tr><td>Networking</td><td>HTTPS, RSocket/CBOR, ActiveMQ</td><td>In-memory</td></tr>
+  <tr><td>Persistence</td><td>PostgreSQL</td><td>In-memory</td></tr>
+  <tr><td>Voter Portal</td><td>Angular SPA, 4 languages</td><td>Simulated in CLI</td></tr>
+  <tr><td>ElGamal</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
+  <tr><td>Schnorr proofs</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
+  <tr><td>Bayer-Groth</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
+  <tr><td>Source code</td><td>~500K lines, 14 repos</td><td>~6,500 lines, 1 module</td></tr>
+  <tr><td>Dependencies</td><td>BouncyCastle, Spring, Angular, ...</td><td>Cobra + x/crypto</td></tr>
+</table>
+
+<div class="separator"></div>
+<p style="text-align:center; color:#8b949e; font-size:13px; margin-top:30px;">
+  Swiss Post E-Voting Go PoC -- Operator Manual v1.0 -- February 2026
+</p>
+
+</div>
+</div>
+
+<script>
+function openDeck(name) {
+  document.getElementById('home-view').classList.add('hide');
+  document.getElementById('manual-view').classList.add('hide');
+  var dv = document.getElementById('deck-view');
+  dv.classList.remove('hide');
+  document.getElementById('deck-iframe').src = name + '.html';
+}
+
+function showManual() {
+  document.getElementById('home-view').classList.add('hide');
+  document.getElementById('deck-view').classList.add('hide');
+  document.getElementById('deck-iframe').src = 'about:blank';
+  var mv = document.getElementById('manual-view');
+  mv.classList.remove('hide');
+  mv.scrollTop = 0;
+}
+
+function goHome() {
+  document.getElementById('deck-view').classList.add('hide');
+  document.getElementById('manual-view').classList.add('hide');
+  document.getElementById('deck-iframe').src = 'about:blank';
+  document.getElementById('home-view').classList.remove('hide');
+}
+
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'home') goHome();
+  if (e.data && e.data.type === 'manual') showManual();
+});
+</script>
+</body>
+</html>

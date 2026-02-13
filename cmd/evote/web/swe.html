@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture: Building a Government Election System in Go</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    color: #24292f;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    overflow: hidden;
+    height: 100vh;
+  }
+  #progress-bar { position:fixed;top:0;left:0;height:3px;background:#0969da;transition:width .4s ease;z-index:100; }
+  #slide-counter { position:fixed;top:10px;right:20px;font-size:12px;color:#8b949e;z-index:100; }
+  #part-label { position:fixed;top:10px;left:20px;font-size:11px;color:#8b949e;z-index:100;letter-spacing:1px;text-transform:uppercase; }
+  #stage {
+    max-width: 900px; margin: 0 auto; padding: 40px 30px 80px;
+    height: 100vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: #d8dee4 #ffffff;
+  }
+  #stage::-webkit-scrollbar { width: 6px; }
+  #stage::-webkit-scrollbar-track { background: #ffffff; }
+  #stage::-webkit-scrollbar-thumb { background: #d8dee4; border-radius: 3px; }
+
+  .slide-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; color: #1f2328; }
+  .part-card { text-align: center; padding-top: 16vh; }
+  .part-card .part-num { font-size:14px;color:#8b949e;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px; }
+  .part-card h1 { font-size:30px;color:#1f2328;margin-bottom:16px;font-weight:800; }
+  .part-card .part-sub { font-size:15px;color:#57606a;max-width:620px;margin:0 auto;line-height:1.8; }
+
+  .title-card { text-align: center; padding-top: 10vh; }
+  .title-card h1 { font-size:30px;color:#1f2328;margin-bottom:10px;font-weight:800; }
+  .title-card .subtitle { font-size:15px;color:#57606a; }
+  .title-card .start-hint { color:#8b949e;font-size:13px;margin-top:40px;animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+  /* Code blocks with syntax highlighting */
+  .code {
+    background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px;
+    padding: 14px 18px; margin: 12px 0; font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    overflow-x: auto; white-space: pre; line-height: 1.5;
+  }
+  .code .kw { color: #cf222e; }          /* keywords */
+  .code .fn { color: #8250df; }          /* function names */
+  .code .tp { color: #0550ae; }          /* types */
+  .code .str { color: #0a3069; }         /* strings */
+  .code .cmt { color: #8b949e; }         /* comments */
+  .code .num { color: #0550ae; }         /* numbers */
+  .code .pkg { color: #c2410c; }         /* package/import names */
+  .code .op { color: #cf222e; }          /* operators */
+
+  /* Pedagogical boxes */
+  .lesson-box {
+    background: #fffbeb; border-left: 3px solid #d4a72c;
+    padding: 12px 16px; margin: 16px 0; font-size: 14px;
+    color: #713f12; line-height: 1.7;
+  }
+  .lesson-box::before { content:'Lesson'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#b45309; margin-bottom:6px; font-weight:700; }
+
+  .insight-box {
+    background: #eff6ff; border-left: 3px solid #218bff;
+    padding: 12px 16px; margin: 16px 0; font-size: 14px;
+    color: #1e3a5f; line-height: 1.7;
+  }
+  .insight-box::before { content:'Key insight'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#0969da; margin-bottom:6px; font-weight:700; }
+
+  .mistake-box {
+    background: #fef2f2; border-left: 3px solid #f87171;
+    padding: 12px 16px; margin: 16px 0; font-size: 14px;
+    color: #7f1d1d; line-height: 1.7;
+  }
+  .mistake-box::before { content:'Common mistake'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#dc2626; margin-bottom:6px; font-weight:700; }
+
+  .analogy-box {
+    background: #f0fdf4; border-left: 3px solid #4ade80;
+    padding: 12px 16px; margin: 16px 0; font-size: 14px;
+    color: #14532d; line-height: 1.7;
+  }
+  .analogy-box::before { content:'Real-world parallel'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#16a34a; margin-bottom:6px; font-weight:700; }
+
+  .think-box {
+    background: #faf5ff; border-left: 3px solid #a855f7;
+    padding: 12px 16px; margin: 16px 0; font-size: 14px;
+    color: #581c87; line-height: 1.7;
+  }
+  .think-box::before { content:'Think about it'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#7c3aed; margin-bottom:6px; font-weight:700; }
+
+  /* Stats boxes */
+  .stat-grid {
+    display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0;
+  }
+  .stat-box {
+    flex: 1; min-width: 130px; background: #f6f8fa;
+    border: 1px solid #d8dee4; border-radius: 8px;
+    padding: 14px; text-align: center;
+  }
+  .stat-box .stat-num { font-size: 28px; font-weight: 800; color: #0969da; }
+  .stat-box .stat-label { font-size: 11px; color: #57606a; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Tree diagrams */
+  .tree { background:#f6f8fa; border:1px solid #d8dee4; border-radius:6px; padding:14px 18px; margin:12px 0; font-size:13px; font-family:'SF Mono','Fira Code',Menlo,Consolas,monospace; white-space:pre; line-height:1.5; overflow-x:auto; }
+  .tree .dir { color: #0550ae; font-weight: 600; }
+  .tree .file { color: #24292f; }
+  .tree .dim { color: #8b949e; }
+  .tree .hl { color: #c2410c; }
+
+  .em { color: #1f2328; font-weight: 600; }
+  .dim { color: #8b949e; }
+  .note { color: #57606a; font-size: 13px; font-style: italic; }
+  h3 { color: #1f2328; font-size: 16px; margin: 18px 0 8px; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 8px 20px; }
+  li { margin-bottom: 4px; }
+  #home-btn {
+    position: fixed; top: 10px; left: 20px;
+    background: none; border: 1px solid #d0d7de; color: #57606a;
+    padding: 3px 10px; border-radius: 4px; font-family: inherit;
+    font-size: 11px; cursor: pointer; z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #home-btn:hover { border-color: #0969da; color: #0969da; }
+  .manual-cta { text-align: center; margin-top: 30px; padding: 20px; }
+  .manual-cta button {
+    background: #0969da; color: #fff; border: none;
+    padding: 12px 24px; border-radius: 8px; font-family: inherit;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .manual-cta button:hover { background: #0860c7; }
+  .fade-in { animation: fadeIn .3s ease-in; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:700; letter-spacing:.5px; }
+  .badge-go { background:#0969da; color:#fff; }
+  .badge-lines { background:#1a7f37; color:#fff; }
+  .badge-deps { background:#8250df; color:#fff; }
+
+  #nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 20px env(safe-area-inset-bottom);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid #d8dee4;
+    z-index: 100; gap: 24px;
+  }
+  #nav-bar button {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid #d0d7de; background: #fff; color: #24292f;
+    font-size: 20px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #nav-bar button:active { background: #f6f8fa; }
+  #nav-bar button:disabled { opacity: 0.25; }
+  #nav-counter { font-size: 13px; color: #8b949e; min-width: 70px; text-align: center; font-family: -apple-system, sans-serif; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="slide-counter"></div>
+<div id="part-label"></div>
+<button id="home-btn" onclick="window.parent.postMessage({type:'home'},'*')">&#8592; Home</button>
+<div id="stage"></div>
+<div id="nav-bar">
+  <button id="nav-prev" onclick="goPrev()" aria-label="Previous">&#8592;</button>
+  <div id="nav-counter"></div>
+  <button id="nav-next" onclick="goNext()" aria-label="Next">&#8594;</button>
+</div>
+
+<script>
+const S = [
+
+// ============================================================
+// TITLE
+// ============================================================
+{
+  part: '',
+  html: `
+    <div class="title-card">
+      <div style="font-size:50px; margin-bottom:24px;">&#x1F3D7;&#xFE0F;</div>
+      <h1>Building a Government Election System</h1>
+      <h1 style="font-size:22px; color:#0969da;">in 6,500 Lines of Go</h1>
+      <div class="subtitle" style="margin-top:16px;">
+        A software engineering lecture
+      </div>
+      <div style="color:#8b949e; font-size:13px; margin-top:24px; line-height:1.8;">
+        Not about cryptography. About how to structure,<br>
+        design, and build real software that works.
+      </div>
+      <div class="start-hint">Press Space to begin</div>
+    </div>
+  `
+},
+
+// ============================================================
+// PART I: WHAT ARE WE BUILDING?
+// ============================================================
+{
+  part: 'Part I: The Project',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part I</div>
+      <h1>What Are We Building?</h1>
+      <div class="part-sub">Before you write a single line of code,<br>understand what you're building and why.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part I: The Project',
+  title: 'The Production System',
+  html: `
+    <p>The Swiss Post e-voting system is used in real federal elections. It's massive:</p>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num">14</div><div class="stat-label">Git repositories</div></div>
+      <div class="stat-box"><div class="stat-num">500K+</div><div class="stat-label">Lines of code</div></div>
+      <div class="stat-box"><div class="stat-num">50GB</div><div class="stat-label">RAM required</div></div>
+      <div class="stat-box"><div class="stat-num">9</div><div class="stat-label">Library modules</div></div>
+    </div>
+    <p>It's Java 21 + Spring Boot + Kubernetes + PostgreSQL + Angular + Electron + ActiveMQ + .NET. It takes a team of dozens and months to set up.</p>
+    <div class="think-box">We reimplemented the core cryptographic protocol -- the <em>mathematical heart</em> of this system -- as a single Go binary. Same algorithms, same proof structures, same security properties. Just... simpler.</div>
+  `
+},
+
+{
+  part: 'Part I: The Project',
+  title: 'Our Go Reimplementation',
+  html: `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num">6,565</div><div class="stat-label">Lines of Go</div></div>
+      <div class="stat-box"><div class="stat-num">4.8 MB</div><div class="stat-label">Binary size</div></div>
+      <div class="stat-box"><div class="stat-num">2</div><div class="stat-label">Dependencies</div></div>
+      <div class="stat-box"><div class="stat-num">12</div><div class="stat-label">Packages</div></div>
+    </div>
+    <p style="margin-top:16px;">One command runs a complete election: key generation, voting, mixing, decryption, and verification.</p>
+    <div class="code"><span class="cmt">$ </span>./evote demo --voters=10 --options=3
+
+<span class="dim">  Setup: 4 control components + electoral board, keys + proofs generated
+  Voting: 10 ballots encrypted and cast
+  Tally: 5 Bayer-Groth verifiable shuffles
+  Verify: 4 key proofs PASS, 5 shuffle proofs PASS
+  Result: Alice 4, Bob 3, Carol 3</span></div>
+    <div class="lesson-box">You don't need 500K lines to implement a complex protocol. You need <em>the right 6,500 lines</em>. Knowing what to leave out is as important as knowing what to put in.</div>
+  `
+},
+
+{
+  part: 'Part I: The Project',
+  title: 'Why Go?',
+  html: `
+    <p>This could have been written in Rust, Python, or C. Here's why Go was the right choice for <em>this</em> project:</p>
+    <div style="margin:12px 0;">
+      <h3 style="color:#0969da;">Fits like a glove</h3>
+      <ul>
+        <li><span class="em">math/big</span> -- arbitrary-precision integers in the standard library (no external bignum dependency)</li>
+        <li><span class="em">crypto/rand</span> -- cryptographically secure random bytes, built in</li>
+        <li><span class="em">Single binary</span> -- <code>go build</code> produces one file, no runtime needed</li>
+        <li><span class="em">Fast compilation</span> -- change code, rebuild, test in under 2 seconds</li>
+        <li><span class="em">Value semantics</span> -- structs are copied by default, which is great for immutable math types</li>
+      </ul>
+    </div>
+    <div style="margin:12px 0;">
+      <h3 style="color:#cf222e;">Wouldn't choose Go for</h3>
+      <ul>
+        <li>High-performance production crypto (Rust or C would be faster for 3072-bit operations)</li>
+        <li>Generic math libraries (Go generics are still young)</li>
+      </ul>
+    </div>
+    <div class="lesson-box">Pick the language that fits the <em>task</em>, not the one you know best. For a PoC that needs big integers, fast iteration, and a clean binary, Go is ideal.</div>
+  `
+},
+
+// ============================================================
+// PART II: PROJECT STRUCTURE
+// ============================================================
+{
+  part: 'Part II: Structure',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part II</div>
+      <h1>Project Structure</h1>
+      <div class="part-sub">How you organize your code determines<br>how easy it is to understand, extend, and debug.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part II: Structure',
+  title: 'The Standard Go Layout',
+  html: `
+    <p>We follow the <span class="em">cmd/ + pkg/</span> convention. Here's the full tree:</p>
+    <div class="tree"><span class="dir">evote/</span>
+<span class="dir">  cmd/evote/</span>                <span class="dim">-- the CLI (what users interact with)</span>
+<span class="file">    main.go</span>                <span class="dim">-- 22 lines: Cobra root command</span>
+<span class="file">    demo.go</span>                <span class="dim">-- 25 lines: "demo" subcommand</span>
+<span class="file">    presentation.go</span>        <span class="dim">-- 772 lines: theatrical step-by-step mode</span>
+<span class="file">    serve.go</span>               <span class="dim">-- web presentation server</span>
+
+<span class="dir">  pkg/</span>                      <span class="dim">-- the library (reusable, importable)</span>
+<span class="dir">    math/</span>       <span class="hl">1,176 LOC</span>  <span class="dim">-- groups, elements, vectors, matrices</span>
+<span class="dir">    elgamal/</span>      <span class="hl">423 LOC</span>  <span class="dim">-- encryption, keys, ciphertexts</span>
+<span class="dir">    zkp/</span>          <span class="hl">505 LOC</span>  <span class="dim">-- zero-knowledge proofs</span>
+<span class="dir">    mixnet/</span>     <span class="hl">1,876 LOC</span>  <span class="dim">-- Bayer-Groth verifiable shuffle</span>
+<span class="dir">    hash/</span>         <span class="hl">296 LOC</span>  <span class="dim">-- recursive hashing</span>
+<span class="dir">    protocol/</span>     <span class="hl">850 LOC</span>  <span class="dim">-- election ceremony orchestration</span>
+<span class="dir">    returncodes/</span>  <span class="hl">171 LOC</span>  <span class="dim">-- return code generation</span>
+<span class="dir">    verify/</span>       <span class="hl">162 LOC</span>  <span class="dim">-- verification utilities</span>
+<span class="dir">    kdf/</span>           <span class="hl">63 LOC</span>  <span class="dim">-- key derivation</span>
+<span class="dir">    symmetric/</span>     <span class="hl">77 LOC</span>  <span class="dim">-- AES-256-GCM wrapper</span>
+<span class="dir">    serialize/</span>     <span class="hl">42 LOC</span>  <span class="dim">-- JSON marshaling</span>
+
+<span class="file">  go.mod</span>                    <span class="dim">-- 2 direct dependencies</span></div>
+    <div class="lesson-box"><strong>cmd/</strong> is <em>thin</em>. It parses flags and calls into <strong>pkg/</strong>. All business logic lives in <strong>pkg/</strong>. This means your library code is reusable and testable without the CLI. The demo.go file is 25 lines -- it parses two flags and calls one function.</div>
+  `
+},
+
+{
+  part: 'Part II: Structure',
+  title: 'The Dependency Graph',
+  html: `
+    <p>Packages form a clean <span class="em">directed acyclic graph</span>. Lower layers know nothing about higher layers.</p>
+    <div class="tree"><span class="dim">Layer 6:</span>  <span class="dir">cmd/evote</span>         <span class="dim">-- CLI: calls protocol</span>
+              &darr;
+<span class="dim">Layer 5:</span>  <span class="dir">protocol</span>           <span class="dim">-- orchestration: calls everything below</span>
+              &darr;
+<span class="dim">Layer 4:</span>  <span class="dir">mixnet</span>  <span class="dir">verify</span>     <span class="dim">-- mix-net shuffle, verification</span>
+              &darr;
+<span class="dim">Layer 3:</span>  <span class="dir">elgamal</span>  <span class="dir">zkp</span>       <span class="dim">-- encryption, proofs</span>
+              &darr;
+<span class="dim">Layer 2:</span>  <span class="dir">math</span>  <span class="dir">hash</span>          <span class="dim">-- groups, elements, hashing</span>
+              &darr;
+<span class="dim">Layer 1:</span>  <span class="dir">math/big</span>  <span class="dir">crypto/rand</span>  <span class="dim">-- Go standard library</span></div>
+    <div class="insight-box"><strong>No circular imports.</strong> Go enforces this at compile time -- you literally cannot create a cycle. This forces you to think about your dependency direction upfront. If package A imports B, B can never import A. This is a feature, not a limitation.</div>
+    <div class="think-box">Look at the graph. The <code>math</code> package knows nothing about elections, votes, or shuffles. It's pure math. The <code>elgamal</code> package knows about encryption but not about voters. Only <code>protocol</code> at the top ties everything together. Each layer has a <em>single concern</em>.</div>
+  `
+},
+
+{
+  part: 'Part II: Structure',
+  title: 'Two Dependencies. That\'s It.',
+  html: `
+    <div class="code"><span class="cmt">// go.mod</span>
+<span class="kw">module</span> github.com/user/evote
+
+<span class="kw">go</span> <span class="num">1.25.7</span>
+
+<span class="kw">require</span> (
+    github.com/spf13/cobra  v1.10.2   <span class="cmt">// CLI framework</span>
+    golang.org/x/crypto     v0.47.0   <span class="cmt">// SHA3, Argon2id</span>
+)</div>
+    <p>That's the entire dependency list. Everything else -- ElGamal encryption, zero-knowledge proofs, the Bayer-Groth shuffle argument, Pedersen commitments -- is implemented from scratch.</p>
+    <div class="lesson-box"><strong>Minimize your dependencies.</strong> Every dependency is a liability: it can break, go unmaintained, introduce vulnerabilities, or change its API. For a cryptographic system, building from primitives also means you <em>understand</em> every line. You're not trusting a black box.<br><br>This doesn't mean "never use libraries." It means: use libraries for things that aren't your core domain (CLI parsing, hash algorithms), and own the code for things that <em>are</em> your core domain (the election protocol).</div>
+  `
+},
+
+// ============================================================
+// PART III: TYPE DESIGN
+// ============================================================
+{
+  part: 'Part III: Types',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part III</div>
+      <h1>Type Design</h1>
+      <div class="part-sub">Good types make invalid states unrepresentable.<br>The compiler catches bugs before you can write them.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part III: Types',
+  title: 'Immutable Value Types',
+  html: `
+    <p>The most important type in the codebase is <span class="em">GqElement</span> -- a number inside a mathematical group. Here's its definition:</p>
+    <div class="code"><span class="cmt">// Immutable: all operations return new instances.</span>
+<span class="kw">type</span> <span class="tp">GqElement</span> <span class="kw">struct</span> {
+    value *<span class="tp">big.Int</span>   <span class="cmt">// private! cannot be accessed outside the package</span>
+    group *<span class="tp">GqGroup</span>   <span class="cmt">// which mathematical group this belongs to</span>
+}</div>
+    <p>Every field is <span class="em">unexported</span> (lowercase). Nobody outside the package can touch the internals. And every operation returns a <em>new</em> element:</p>
+    <div class="code"><span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Multiply</span>(other <span class="tp">GqElement</span>) <span class="tp">GqElement</span> {
+    e.<span class="fn">checkSameGroup</span>(other)
+    result := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Mul</span>(e.value, other.value)
+    result.<span class="fn">Mod</span>(result, e.group.p)
+    <span class="kw">return</span> <span class="tp">GqElement</span>{value: result, group: e.group}  <span class="cmt">// NEW instance</span>
+}
+
+<span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Exponentiate</span>(exp <span class="tp">ZqElement</span>) <span class="tp">GqElement</span> {
+    result := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Exp</span>(e.value, exp.value, e.group.p)
+    <span class="kw">return</span> <span class="tp">GqElement</span>{value: result, group: e.group}  <span class="cmt">// NEW instance</span>
+}</div>
+    <div class="lesson-box"><strong>Never mutate. Always return new.</strong> This is the single most important pattern in this codebase. When <code>a.Multiply(b)</code> is called, <code>a</code> doesn't change. <code>b</code> doesn't change. You get a fresh result. This eliminates an entire class of bugs: accidental aliasing, shared mutable state, spooky action at a distance.</div>
+  `
+},
+
+{
+  part: 'Part III: Types',
+  title: 'Why Immutability Matters Here',
+  html: `
+    <p>Here's a bug that immutability prevents. Imagine <code>big.Int</code> was used directly:</p>
+    <div class="code"><span class="cmt">// DANGEROUS: what the code would look like without immutability</span>
+secretKey := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">SetInt64</span>(<span class="num">42</span>)
+publicKey := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Exp</span>(g, secretKey, p)
+
+<span class="cmt">// Later, someone "temporarily" modifies the secret key...</span>
+temp := secretKey           <span class="cmt">// This is a POINTER COPY, not a value copy!</span>
+temp.<span class="fn">Add</span>(temp, big.NewInt(<span class="num">1</span>)) <span class="cmt">// Oops: this ALSO modifies secretKey!</span>
+
+<span class="cmt">// Now secretKey is 43, not 42. The election is broken.</span>
+<span class="cmt">// And the bug is 50 lines away from where the damage shows up.</span></div>
+    <div class="mistake-box">In Go, <code>*big.Int</code> is a pointer type. Assigning it copies the pointer, not the value. Most <code>big.Int</code> operations mutate the receiver. This means that if you pass a <code>*big.Int</code> around, anyone can silently change it. In a cryptographic system, this is catastrophic.</div>
+    <p>Our <code>GqElement</code> wraps it safely:</p>
+    <div class="code"><span class="cmt">// SAFE: our immutable wrapper</span>
+<span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Value</span>() *<span class="tp">big.Int</span> {
+    <span class="kw">return</span> <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Set</span>(e.value)  <span class="cmt">// returns a COPY, not the original</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewGqElement</span>(value *<span class="tp">big.Int</span>, group *<span class="tp">GqGroup</span>) (<span class="tp">GqElement</span>, <span class="kw">error</span>) {
+    <span class="cmt">// ...</span>
+    <span class="kw">return</span> <span class="tp">GqElement</span>{value: <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Set</span>(value), group: group}, <span class="kw">nil</span>
+    <span class="cmt">//                ^^^ defensive copy on the way IN</span>
+}</div>
+    <div class="insight-box">Defensive copies on the way <em>in</em> (constructor) and on the way <em>out</em> (Value()). The internal state can never be mutated by external code. This is a foundational pattern for any code handling sensitive data.</div>
+  `
+},
+
+{
+  part: 'Part III: Types',
+  title: 'Compile-Time Safety with Distinct Types',
+  html: `
+    <p>We have two kinds of numbers: group elements (G<sub>q</sub>) and exponents (Z<sub>q</sub>). They're both <code>*big.Int</code> underneath, but they're <em>different types</em>:</p>
+    <div class="code"><span class="kw">type</span> <span class="tp">GqElement</span> <span class="kw">struct</span> { value *<span class="tp">big.Int</span>; group *<span class="tp">GqGroup</span> }  <span class="cmt">// group elements</span>
+<span class="kw">type</span> <span class="tp">ZqElement</span> <span class="kw">struct</span> { value *<span class="tp">big.Int</span>; group *<span class="tp">ZqGroup</span> }  <span class="cmt">// exponents</span></div>
+    <p>Now look at what happens if you confuse them:</p>
+    <div class="code"><span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Exponentiate</span>(exp <span class="tp">ZqElement</span>) <span class="tp">GqElement</span>
+
+<span class="cmt">// This compiles:</span>
+result := element.<span class="fn">Exponentiate</span>(exponent)  <span class="cmt">// GqElement ^ ZqElement -> GqElement</span>
+
+<span class="cmt">// This does NOT compile:</span>
+result := element.<span class="fn">Exponentiate</span>(otherElement)  <span class="cmt">// GqElement ^ GqElement -> COMPILE ERROR</span>
+
+<span class="cmt">// You can't accidentally pass a group element where an exponent is expected.</span></div>
+    <div class="lesson-box"><strong>Use distinct types for distinct concepts.</strong> Even if they have the same underlying representation, wrapping them in separate types lets the compiler catch category errors. A group element is not an exponent. A public key is not a private key. Making the compiler enforce this turns runtime bugs into compile-time errors -- which is always cheaper.</div>
+  `
+},
+
+{
+  part: 'Part III: Types',
+  title: 'Runtime Guards: checkSameGroup',
+  html: `
+    <p>The compiler can't check <em>everything</em>. Two <code>GqElement</code> values could belong to different groups (different primes). This is a runtime check:</p>
+    <div class="code"><span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">checkSameGroup</span>(other <span class="tp">GqElement</span>) {
+    <span class="kw">if</span> !e.group.<span class="fn">Equals</span>(other.group) {
+        <span class="kw">panic</span>(<span class="str">"elements must be from the same group"</span>)
+    }
+}
+
+<span class="cmt">// Called at the start of every cross-element operation:</span>
+<span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Multiply</span>(other <span class="tp">GqElement</span>) <span class="tp">GqElement</span> {
+    e.<span class="fn">checkSameGroup</span>(other)  <span class="cmt">// panics immediately if groups don't match</span>
+    <span class="cmt">// ...</span>
+}</div>
+    <div class="think-box"><strong>Why panic instead of returning an error?</strong> Because mixing groups is a <em>programming error</em>, not a data error. It means the developer wrote incorrect code, not that the user provided bad input. Panicking gives you an immediate stack trace pointing to exactly where the bug is. Returning an error would just propagate confusion. <br><br>This is a deliberate design choice: <strong>validate at construction, panic on invariant violations, return errors for external input.</strong></div>
+  `
+},
+
+{
+  part: 'Part III: Types',
+  title: 'Domain Types Tell the Story',
+  html: `
+    <p>Look at the top-level domain types. Even without understanding cryptography, you can read what this system does:</p>
+    <div class="code"><span class="kw">type</span> <span class="tp">ControlComponent</span> <span class="kw">struct</span> {
+    ID                <span class="tp">int</span>
+    ElectionKeyPair   <span class="tp">elgamal.KeyPair</span>
+    ReturnCodeSecret  <span class="tp">emath.ZqElement</span>
+    SchnorrProofs     []<span class="tp">zkp.SchnorrProof</span>
+}
+
+<span class="kw">type</span> <span class="tp">VotingCard</span> <span class="kw">struct</span> {
+    VoterID            <span class="tp">string</span>
+    StartVotingKey     <span class="tp">string</span>    <span class="cmt">// SVK for authentication</span>
+    ChoiceReturnCodes  []<span class="tp">string</span>  <span class="cmt">// expected return codes</span>
+    BallotCastingKey   <span class="tp">string</span>    <span class="cmt">// BCK for confirmation</span>
+}
+
+<span class="kw">type</span> <span class="tp">ElectionEvent</span> <span class="kw">struct</span> {
+    Config         *<span class="tp">Config</span>
+    CCs            []*<span class="tp">ControlComponent</span>
+    EB             *<span class="tp">ElectoralBoard</span>
+    ElectionPK     <span class="tp">elgamal.PublicKey</span>      <span class="cmt">// combined key</span>
+    VotingCards    []*<span class="tp">VotingCard</span>
+    BallotBox      *<span class="tp">BallotBox</span>
+    ShuffleResults []<span class="tp">mixnet.VerifiableShuffle</span>
+    FinalResult    <span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>             <span class="cmt">// option -> vote count</span>
+}</div>
+    <div class="lesson-box"><strong>Types are documentation.</strong> A developer reading <code>ElectionEvent</code> immediately understands the system has control components, an electoral board, voting cards, a ballot box, shuffle results, and a final tally. The type names <em>are</em> the glossary. If your types read like a story, your code is self-documenting.</div>
+  `
+},
+
+// ============================================================
+// PART IV: DESIGN PATTERNS
+// ============================================================
+{
+  part: 'Part IV: Patterns',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part IV</div>
+      <h1>Design Patterns</h1>
+      <div class="part-sub">Specific patterns from the codebase that you<br>can use in any Go project.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part IV: Patterns',
+  title: 'Pattern 1: Thin CLI, Fat Library',
+  html: `
+    <p>Here's the entire <code>demo.go</code> -- the command that runs a full election:</p>
+    <div class="code"><span class="kw">package</span> main
+
+<span class="kw">var</span> demoVoters <span class="tp">int</span>
+<span class="kw">var</span> demoOptions <span class="tp">int</span>
+
+<span class="kw">var</span> demoCmd = &<span class="tp">cobra.Command</span>{
+    Use:   <span class="str">"demo"</span>,
+    Short: <span class="str">"Run a full election ceremony end-to-end"</span>,
+    Run: <span class="kw">func</span>(cmd *<span class="tp">cobra.Command</span>, args []<span class="tp">string</span>) {
+        protocol.<span class="fn">RunDemoElection</span>(demoVoters, demoOptions)
+    },
+}
+
+<span class="kw">func</span> <span class="fn">init</span>() {
+    demoCmd.Flags().<span class="fn">IntVar</span>(&demoVoters, <span class="str">"voters"</span>, <span class="num">10</span>, <span class="str">"Number of voters"</span>)
+    demoCmd.Flags().<span class="fn">IntVar</span>(&demoOptions, <span class="str">"options"</span>, <span class="num">2</span>, <span class="str">"Number of voting options"</span>)
+    rootCmd.<span class="fn">AddCommand</span>(demoCmd)
+}</div>
+    <p>That's it. 25 lines. The CLI's job is to parse flags and call a function. The function lives in <code>pkg/protocol</code> where it can be tested, reused, and imported by other tools.</p>
+    <div class="analogy-box">Think of <code>cmd/</code> as the steering wheel and pedals of a car. The engine is in <code>pkg/</code>. If you want to build a different car (a web API, a test harness, a GUI), you swap the steering wheel, not the engine.</div>
+  `
+},
+
+{
+  part: 'Part IV: Patterns',
+  title: 'Pattern 2: Constructor Validation',
+  html: `
+    <p>There are two ways to create a group element. The <em>safe</em> way and the <em>fast</em> way:</p>
+    <div class="code"><span class="cmt">// SAFE: validates group membership. For external input.</span>
+<span class="kw">func</span> <span class="fn">NewGqElement</span>(value *<span class="tp">big.Int</span>, group *<span class="tp">GqGroup</span>) (<span class="tp">GqElement</span>, <span class="kw">error</span>) {
+    <span class="kw">if</span> !group.<span class="fn">IsGroupMember</span>(value) {
+        <span class="kw">return</span> <span class="tp">GqElement</span>{}, fmt.<span class="fn">Errorf</span>(<span class="str">"value %v is not a member of the group"</span>, value)
+    }
+    <span class="kw">return</span> <span class="tp">GqElement</span>{value: <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Set</span>(value), group: group}, <span class="kw">nil</span>
+}
+
+<span class="cmt">// FAST: skips validation. For internal use when the math guarantees membership.</span>
+<span class="kw">func</span> <span class="fn">gqElementUnchecked</span>(value *<span class="tp">big.Int</span>, group *<span class="tp">GqGroup</span>) <span class="tp">GqElement</span> {
+    <span class="kw">return</span> <span class="tp">GqElement</span>{value: <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Set</span>(value), group: group}
+}</div>
+    <p>Notice: the unsafe version is <span class="em">unexported</span> (lowercase <code>gqElementUnchecked</code>). Only code <em>inside the math package</em> can use it.</p>
+    <div class="lesson-box"><strong>Validate at the boundary, trust inside.</strong> The public constructor checks group membership (expensive but safe). Internal operations that are mathematically guaranteed to produce valid elements skip the check. This gives you both safety <em>and</em> performance. The unexported name prevents misuse from outside the package.</div>
+  `
+},
+
+{
+  part: 'Part IV: Patterns',
+  title: 'Pattern 3: Composition over Inheritance',
+  html: `
+    <p>Go doesn't have inheritance. Instead, we build complex types by <em>composing</em> simpler ones:</p>
+    <div class="code"><span class="cmt">// Level 1: A single group element</span>
+<span class="kw">type</span> <span class="tp">GqElement</span> <span class="kw">struct</span> { value *<span class="tp">big.Int</span>; group *<span class="tp">GqGroup</span> }
+
+<span class="cmt">// Level 2: A vector of elements (built from GqElement)</span>
+<span class="kw">type</span> <span class="tp">GqVector</span> <span class="kw">struct</span> { elements []<span class="tp">GqElement</span>; group *<span class="tp">GqGroup</span> }
+
+<span class="cmt">// Level 3: A ciphertext (built from GqElement + GqVector)</span>
+<span class="kw">type</span> <span class="tp">Ciphertext</span> <span class="kw">struct</span> {
+    Gamma <span class="tp">GqElement</span>    <span class="cmt">// one element</span>
+    Phis  *<span class="tp">GqVector</span>    <span class="cmt">// vector of elements</span>
+}
+
+<span class="cmt">// Level 4: A key pair (built from vectors)</span>
+<span class="kw">type</span> <span class="tp">KeyPair</span> <span class="kw">struct</span> {
+    SK <span class="tp">PrivateKey</span>     <span class="cmt">// wraps ZqVector</span>
+    PK <span class="tp">PublicKey</span>      <span class="cmt">// wraps GqVector</span>
+}
+
+<span class="cmt">// Level 5: An election (built from everything)</span>
+<span class="kw">type</span> <span class="tp">ElectionEvent</span> <span class="kw">struct</span> {
+    ElectionPK  <span class="tp">PublicKey</span>
+    BallotBox   *<span class="tp">BallotBox</span>      <span class="cmt">// contains []Ciphertext</span>
+    <span class="cmt">// ...</span>
+}</div>
+    <div class="insight-box">Each level is built from the level below. <code>GqElement</code> &rarr; <code>GqVector</code> &rarr; <code>Ciphertext</code> &rarr; <code>BallotBox</code> &rarr; <code>ElectionEvent</code>. No inheritance hierarchies, no abstract classes, no "implements" keywords. Just small types composed into larger ones. This is how Go wants you to build software.</div>
+  `
+},
+
+{
+  part: 'Part IV: Patterns',
+  title: 'Pattern 4: Interface Segregation',
+  html: `
+    <p>The codebase defines one key interface: <code>Hashable</code>. It's tiny:</p>
+    <div class="code"><span class="kw">type</span> <span class="tp">Hashable</span> <span class="kw">interface</span> {
+    <span class="fn">hashableTag</span>()  <span class="tp">byte</span>
+    <span class="fn">hashableData</span>() <span class="kw">interface</span>{}
+}
+
+<span class="cmt">// Implementations for different data types:</span>
+<span class="kw">type</span> <span class="tp">HashableBigInt</span>  <span class="kw">struct</span> { Value *<span class="tp">big.Int</span> }
+<span class="kw">type</span> <span class="tp">HashableString</span>  <span class="kw">struct</span> { Value <span class="tp">string</span> }
+<span class="kw">type</span> <span class="tp">HashableBytes</span>   <span class="kw">struct</span> { Data  []<span class="tp">byte</span> }
+<span class="kw">type</span> <span class="tp">HashableList</span>    <span class="kw">struct</span> { Elements []<span class="tp">Hashable</span> }  <span class="cmt">// recursive!</span></div>
+    <p>This lets us hash <em>anything</em> uniformly -- numbers, strings, nested lists of mixed types -- with one function:</p>
+    <div class="code">hashBytes := hash.<span class="fn">RecursiveHash</span>(
+    <span class="tp">HashableBigInt</span>{Value: p},
+    <span class="tp">HashableBigInt</span>{Value: q},
+    <span class="tp">HashableString</span>{Value: <span class="str">"SchnorrProof"</span>},
+    <span class="tp">HashableList</span>{Elements: auxInfo},
+)</div>
+    <div class="lesson-box"><strong>Small interfaces, concrete types.</strong> Go's philosophy: interfaces should have 1-3 methods. <code>Hashable</code> has 2 methods and is the <em>only</em> interface in the entire codebase. Everything else is concrete types with methods. This keeps the code grounded and easy to follow. You always know exactly which type you're dealing with.</div>
+  `
+},
+
+{
+  part: 'Part IV: Patterns',
+  title: 'Pattern 5: Functions That Read Like Specifications',
+  html: `
+    <p>Compare the ElGamal encryption <em>specification</em> to the <em>code</em>:</p>
+    <div style="display:flex; gap:16px; margin:12px 0;">
+      <div style="flex:1;">
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Specification</div>
+        <div class="code" style="font-size:12px;"><span class="cmt">gamma = g^r
+phi_i = pk_i^r * m_i</span></div>
+      </div>
+      <div style="flex:1;">
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Code</div>
+        <div class="code" style="font-size:12px;">gamma := g.<span class="fn">Exponentiate</span>(r)
+
+pkR := pk.<span class="fn">Get</span>(i).<span class="fn">Exponentiate</span>(r)
+phis[i] = pkR.<span class="fn">Multiply</span>(msg.<span class="fn">Get</span>(i))</div>
+      </div>
+    </div>
+    <p>And the Schnorr proof:</p>
+    <div style="display:flex; gap:16px; margin:12px 0;">
+      <div style="flex:1;">
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Specification</div>
+        <div class="code" style="font-size:12px;"><span class="cmt">b <- Z_q
+c = g^b
+e = H(g, pk, c)
+z = b + e*x</span></div>
+      </div>
+      <div style="flex:1;">
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Code</div>
+        <div class="code" style="font-size:12px;">b := emath.<span class="fn">RandomZqElement</span>(zqGroup)
+c := g.<span class="fn">Exponentiate</span>(b)
+e := <span class="fn">schnorrChallenge</span>(group, y, c, ...)
+z := b.<span class="fn">Add</span>(e.<span class="fn">Multiply</span>(x))</div>
+      </div>
+    </div>
+    <div class="lesson-box"><strong>Good code mirrors the specification.</strong> When a reviewer (or auditor) reads the code, they should be able to hold the spec in one hand and the code in the other and verify them line-by-line. This is not an accident -- it's the result of designing your types and method names to match the domain vocabulary. <code>g.Exponentiate(r)</code> reads exactly like "g to the power of r".</div>
+  `
+},
+
+{
+  part: 'Part IV: Patterns',
+  title: 'Pattern 6: Variadic Functions for Flexibility',
+  html: `
+    <p>Several functions use Go's <code>...</code> syntax for optional parameters:</p>
+    <div class="code"><span class="kw">func</span> <span class="fn">GenSchnorrProof</span>(
+    x     <span class="tp">ZqElement</span>,
+    y     <span class="tp">GqElement</span>,
+    group *<span class="tp">GqGroup</span>,
+    auxInfo ...<span class="tp">hash.Hashable</span>,   <span class="cmt">// optional auxiliary data for the hash</span>
+) <span class="tp">SchnorrProof</span>
+
+<span class="cmt">// Can be called with or without auxiliary info:</span>
+proof1 := <span class="fn">GenSchnorrProof</span>(sk, pk, group)           <span class="cmt">// no aux</span>
+proof2 := <span class="fn">GenSchnorrProof</span>(sk, pk, group, extraData) <span class="cmt">// with aux</span></div>
+    <div class="code"><span class="cmt">// Same pattern for combining keys:</span>
+<span class="kw">func</span> <span class="fn">CombinePublicKeys</span>(keys ...<span class="tp">PublicKey</span>) <span class="tp">PublicKey</span>
+
+combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</div>
+    <div class="insight-box">Variadic parameters give you a clean API without overloading (which Go doesn't have) or wrapping things in slices at every call site. Use them when the "extra" parameters are genuinely optional, not when you're too lazy to define a proper config struct.</div>
+  `
+},
+
+// ============================================================
+// PART V: ERROR HANDLING
+// ============================================================
+{
+  part: 'Part V: Error Handling',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part V</div>
+      <h1>Error Handling Strategy</h1>
+      <div class="part-sub">Not everything deserves an error return.<br>Not everything deserves a panic.<br>Knowing which to use when is a skill.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part V: Error Handling',
+  title: 'Three Strategies, Three Contexts',
+  html: `
+    <div style="margin:8px 0;">
+      <h3 style="color:#1a7f37;">1. Return error -- for external input</h3>
+      <div class="code"><span class="kw">func</span> <span class="fn">NewGqElement</span>(value *<span class="tp">big.Int</span>, group *<span class="tp">GqGroup</span>) (<span class="tp">GqElement</span>, <span class="kw">error</span>) {
+    <span class="kw">if</span> !group.<span class="fn">IsGroupMember</span>(value) {
+        <span class="kw">return</span> <span class="tp">GqElement</span>{}, fmt.<span class="fn">Errorf</span>(<span class="str">"value is not a group member"</span>)
+    }
+    <span class="cmt">// ...</span>
+}</div>
+      <p class="note">Used when the caller provided data that might be invalid. Let them handle it.</p>
+    </div>
+    <div style="margin:16px 0;">
+      <h3 style="color:#cf222e;">2. Panic -- for programming errors</h3>
+      <div class="code"><span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Multiply</span>(other <span class="tp">GqElement</span>) <span class="tp">GqElement</span> {
+    e.<span class="fn">checkSameGroup</span>(other)  <span class="cmt">// panics if groups don't match</span>
+    <span class="cmt">// ...</span>
+}
+
+<span class="kw">func</span> <span class="fn">CombinePublicKeys</span>(keys ...<span class="tp">PublicKey</span>) <span class="tp">PublicKey</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(keys) == <span class="num">0</span> { <span class="kw">panic</span>(<span class="str">"must provide at least one key"</span>) }
+    <span class="cmt">// ...</span>
+}</div>
+      <p class="note">Used when the invariant is the caller's responsibility. This is a bug, not a data problem.</p>
+    </div>
+    <div style="margin:16px 0;">
+      <h3 style="color:#c2410c;">3. Panic with message -- for "should never happen" in PoC</h3>
+      <div class="code">group, err := emath.<span class="fn">NewGqGroup</span>(p, q, g)
+<span class="kw">if</span> err != <span class="kw">nil</span> {
+    <span class="kw">panic</span>(<span class="str">"failed to create group: "</span> + err.<span class="fn">Error</span>())
+}</div>
+      <p class="note">In a PoC, crashing with a clear message is better than littering the code with error propagation for impossible cases. In production, this would be a proper error return.</p>
+    </div>
+  `
+},
+
+{
+  part: 'Part V: Error Handling',
+  title: 'The PoC vs. Production Tradeoff',
+  html: `
+    <div class="think-box"><strong>Should this PoC have better error handling?</strong><br><br>
+    No. And here's why.<br><br>
+    This code runs a single-threaded, in-memory election ceremony. There's no network, no disk I/O, no user input after the flags are parsed. If something goes wrong, it's because the <em>math is wrong</em> -- and the correct response is to crash with a stack trace, not to gracefully return an error that nobody knows how to handle.<br><br>
+    In production? Absolutely add proper error handling. There are network calls, database transactions, concurrent operations, and partial failures. But for a PoC, <strong>clarity wins over defensive programming</strong>.</div>
+    <div class="lesson-box"><strong>Match your error strategy to your context.</strong> A PoC, a library, a web server, and an embedded system all need different error handling approaches. Don't cargo-cult <code>if err != nil { return err }</code> on every line if you're writing throwaway code. And don't <code>panic</code> in a library that other people import. Context matters.</div>
+  `
+},
+
+// ============================================================
+// PART VI: ARCHITECTURE IN ACTION
+// ============================================================
+{
+  part: 'Part VI: Architecture',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part VI</div>
+      <h1>Architecture in Action</h1>
+      <div class="part-sub">Let's trace a vote through the system<br>and see how the layers work together.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part VI: Architecture',
+  title: 'Tracing a Vote: Encryption',
+  html: `
+    <p>When a voter selects "Alice", here's the call chain through the layers:</p>
+    <div class="code"><span class="cmt">// Layer 5: protocol -- orchestration</span>
+<span class="kw">func</span> <span class="fn">CastVote</span>(event *<span class="tp">ElectionEvent</span>, voterIdx <span class="tp">int</span>, selected []<span class="tp">int</span>) {
+    <span class="cmt">// Encode: Alice -> prime 2 -> squared: 4</span>
+    encoded := returncodes.<span class="fn">EncodeVote</span>(selected, event.Primes)
+
+    <span class="cmt">// Encrypt: call into Layer 3</span>
+    r := emath.<span class="fn">RandomZqElement</span>(zqGroup)
+    ct := elgamal.<span class="fn">Encrypt</span>(msg, r, event.ElectionPK)
+    <span class="cmt">// ...</span>
+}</div>
+    <div class="code"><span class="cmt">// Layer 3: elgamal -- encryption</span>
+<span class="kw">func</span> <span class="fn">Encrypt</span>(msg <span class="tp">Message</span>, r <span class="tp">emath.ZqElement</span>, pk <span class="tp">PublicKey</span>) <span class="tp">Ciphertext</span> {
+    gamma := g.<span class="fn">Exponentiate</span>(r)         <span class="cmt">// calls Layer 2</span>
+    phis[i] = pk.<span class="fn">Get</span>(i).<span class="fn">Exponentiate</span>(r).<span class="fn">Multiply</span>(msg.<span class="fn">Get</span>(i))
+    <span class="kw">return</span> <span class="tp">Ciphertext</span>{Gamma: gamma, Phis: ...}
+}</div>
+    <div class="code"><span class="cmt">// Layer 2: math -- group operations</span>
+<span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Exponentiate</span>(exp <span class="tp">ZqElement</span>) <span class="tp">GqElement</span> {
+    result := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">Exp</span>(e.value, exp.value, e.group.p)  <span class="cmt">// Layer 1: stdlib</span>
+    <span class="kw">return</span> <span class="tp">GqElement</span>{value: result, group: e.group}
+}</div>
+    <div class="insight-box">Each layer adds meaning. Layer 1 knows about big numbers. Layer 2 knows about groups. Layer 3 knows about encryption. Layer 5 knows about elections. A change to the group math never touches the election logic, and vice versa. This is <em>separation of concerns</em> in practice.</div>
+  `
+},
+
+{
+  part: 'Part VI: Architecture',
+  title: 'Tracing a Vote: The Verifiable Shuffle',
+  html: `
+    <p>The most complex operation -- the mix-net shuffle -- is orchestrated by a single clean function:</p>
+    <div class="code"><span class="cmt">// pkg/mixnet/verifiable_shuffle.go</span>
+<span class="kw">func</span> <span class="fn">GenVerifiableShuffle</span>(
+    C  *<span class="tp">elgamal.CiphertextVector</span>,   <span class="cmt">// input ballots</span>
+    pk <span class="tp">elgamal.PublicKey</span>,            <span class="cmt">// encryption key</span>
+    group *<span class="tp">emath.GqGroup</span>,           <span class="cmt">// math group</span>
+) <span class="tp">VerifiableShuffle</span> {
+    N := C.<span class="fn">Size</span>()
+    _, n := <span class="fn">GetMatrixDimensions</span>(N)      <span class="cmt">// arrange N items in m x n matrix</span>
+
+    ck := <span class="fn">GenCommitmentKey</span>(n, group)      <span class="cmt">// Pedersen commitment parameters</span>
+    shuffle := <span class="fn">GenShuffle</span>(C, pk)          <span class="cmt">// permute + re-encrypt</span>
+    arg := <span class="fn">GenShuffleArgument</span>(             <span class="cmt">// generate proof</span>
+        C, shuffle.Shuffled,
+        shuffle.Perm, shuffle.Rho,
+        pk, ck, group,
+    )
+
+    <span class="kw">return</span> <span class="tp">VerifiableShuffle</span>{
+        ShuffledCiphertexts: shuffle.Shuffled,
+        Argument:            arg,
+    }
+}</div>
+    <div class="lesson-box"><strong>Complex operations should have simple interfaces.</strong> The shuffle involves permutations, re-encryption, commitment schemes, and a 5-sub-argument zero-knowledge proof. But from the outside, it's one function call: input ciphertexts in, shuffled ciphertexts + proof out. All the complexity is <em>behind</em> the interface, not <em>in</em> it.</div>
+  `
+},
+
+{
+  part: 'Part VI: Architecture',
+  title: 'Where the Complexity Lives',
+  html: `
+    <p>Lines of code by package tell an interesting story:</p>
+    <div class="tree"><span class="hl">mixnet     1,876 LOC</span>  <span class="dim">####################################  (29%)</span>
+<span class="dir">math       1,176 LOC</span>  <span class="dim">######################              (18%)</span>
+<span class="dir">protocol     850 LOC</span>  <span class="dim">################                    (13%)</span>
+<span class="dir">cmd/evote    924 LOC</span>  <span class="dim">#################                   (14%)</span>
+<span class="dir">zkp          505 LOC</span>  <span class="dim">##########                          (8%)</span>
+<span class="dir">elgamal      423 LOC</span>  <span class="dim">########                            (6%)</span>
+<span class="dir">hash         296 LOC</span>  <span class="dim">######                              (5%)</span>
+<span class="dim">everything else  515 LOC  ##########                          (8%)</span></div>
+    <p>Nearly <span class="em">30%</span> of the code is the Bayer-Groth shuffle proof. That's the hardest algorithm in the system, so it makes sense that it's the largest package. The orchestration layer (<code>protocol</code>) is only 13%.</p>
+    <div class="think-box"><strong>A healthy codebase has its complexity where the problem is complex.</strong> If your orchestration layer is 50% of the code, something is wrong -- the hard parts should be in the specialized packages. If your "utils" package is 30%, you probably have an abstraction missing. The distribution of lines tells you whether your architecture matches your problem.</div>
+  `
+},
+
+// ============================================================
+// PART VII: THE CLI AS A PRODUCT
+// ============================================================
+{
+  part: 'Part VII: Product',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part VII</div>
+      <h1>The CLI as a Product</h1>
+      <div class="part-sub">Software isn't done when the algorithm works.<br>It's done when someone else can use it.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part VII: Product',
+  title: 'Cobra: CLI Framework',
+  html: `
+    <p>The CLI uses <span class="em">Cobra</span>, the standard Go CLI framework (used by kubectl, Hugo, gh, etc.).</p>
+    <div class="code"><span class="cmt">// main.go -- 22 lines total</span>
+<span class="kw">var</span> rootCmd = &<span class="tp">cobra.Command</span>{
+    Use:   <span class="str">"evote"</span>,
+    Short: <span class="str">"Swiss Post E-Voting Protocol PoC"</span>,
+    Long:  <span class="str">"A proof-of-concept reimplementation of the Swiss Post\\n"</span> +
+           <span class="str">"e-voting cryptographic protocol in Go."</span>,
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="kw">if</span> err := rootCmd.<span class="fn">Execute</span>(); err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Fprintln</span>(os.Stderr, err)
+        os.<span class="fn">Exit</span>(<span class="num">1</span>)
+    }
+}</div>
+    <p>Subcommands are registered in <code>init()</code> functions -- one file per subcommand:</p>
+    <div class="code"><span class="cmt">$ ./evote --help</span>
+
+<span class="dim">A proof-of-concept reimplementation of the Swiss Post
+e-voting cryptographic protocol in Go.
+
+Available Commands:
+  demo       Run a full election ceremony end-to-end
+  present    Run an interactive step-by-step presentation
+  serve      Serve the web presentations on the local network
+  help       Help about any command</span></div>
+    <div class="lesson-box"><strong>One file per subcommand.</strong> <code>demo.go</code> defines <code>demoCmd</code>. <code>serve.go</code> defines <code>serveCmd</code>. <code>presentation.go</code> defines <code>presentCmd</code>. Each registers itself in its own <code>init()</code>. This means adding a new command is: create a file, define the command, done. No editing <code>main.go</code>.</div>
+  `
+},
+
+{
+  part: 'Part VII: Product',
+  title: 'The Presentation Mode: Code as Communication',
+  html: `
+    <p>The <code>evote present</code> command is 772 lines -- the second-largest file. It doesn't implement any new algorithm. It presents the existing algorithms <em>theatrically</em>.</p>
+    <div class="code"><span class="cmt">// Helper functions for presentation output:</span>
+<span class="kw">func</span> <span class="fn">banner</span>(role, text <span class="tp">string</span>)   <span class="cmt">// "===[ CC0 OPERATOR (BERN) ]==="</span>
+<span class="kw">func</span> <span class="fn">section</span>(text <span class="tp">string</span>)        <span class="cmt">// "--- Key Generation ---"</span>
+<span class="kw">func</span> <span class="fn">narrator</span>(text <span class="tp">string</span>)       <span class="cmt">// Explanatory commentary</span>
+<span class="kw">func</span> <span class="fn">showValue</span>(label, val <span class="tp">string</span>) <span class="cmt">// "  Secret key [0]:  4902980..."</span>
+
+<span class="cmt">// The presentation calls the SAME crypto functions as the demo,</span>
+<span class="cmt">// but wraps each step in narration and formatting.</span></div>
+    <div class="analogy-box"><strong>Think about your users.</strong> The <code>demo</code> command is for developers verifying correctness. The <code>present</code> command is for teaching the protocol to an audience. Same algorithm, different interface. The best tools have multiple "faces" for different audiences -- and you don't need a GUI framework to build them.</div>
+  `
+},
+
+{
+  part: 'Part VII: Product',
+  title: 'What Makes This a Good PoC',
+  html: `
+    <div style="margin:12px 0;">
+      <h3 style="color:#1a7f37;">What it does well</h3>
+      <ul>
+        <li><span class="em">Runs end-to-end</span> -- not just key generation, but a complete election</li>
+        <li><span class="em">Verifies itself</span> -- the demo checks every proof, catches its own bugs</li>
+        <li><span class="em">Is readable</span> -- code mirrors the specification line-by-line</li>
+        <li><span class="em">Is self-contained</span> -- one binary, two dependencies, <code>go build && ./evote demo</code></li>
+        <li><span class="em">Has a teaching mode</span> -- the <code>present</code> command explains what it does</li>
+      </ul>
+    </div>
+    <div style="margin:12px 0;">
+      <h3 style="color:#cf222e;">What it intentionally skips</h3>
+      <ul>
+        <li><span class="em">Networking</span> -- everything is in-process (no HTTP, no gRPC)</li>
+        <li><span class="em">Persistence</span> -- all in memory (no database, no files)</li>
+        <li><span class="em">Concurrency</span> -- single-threaded (no goroutines, no channels)</li>
+        <li><span class="em">Production key sizes</span> -- 256-bit primes (not 3072-bit)</li>
+        <li><span class="em">Comprehensive tests</span> -- the demo <em>is</em> the integration test</li>
+      </ul>
+    </div>
+    <div class="lesson-box"><strong>A PoC is not a product. Know the difference.</strong> A PoC proves the concept works. It answers: "Can this be done?" A product answers: "Can this be used safely by real people?" The PoC's job is to be clear, correct, and convincing -- not complete. Adding networking, persistence, and auth to this PoC would triple the code and add zero confidence that the algorithm is correct.</div>
+  `
+},
+
+// ============================================================
+// PART VIII: TAKEAWAYS
+// ============================================================
+{
+  part: 'Part VIII: Takeaways',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part VIII</div>
+      <h1>Takeaways</h1>
+      <div class="part-sub">What to remember from this lecture.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part VIII: Takeaways',
+  title: 'The Seven Principles',
+  html: `
+    <div style="line-height:2.4; font-size:15px;">
+      <div><span style="color:#0969da; font-weight:700;">1.</span> <span class="em">Make invalid states unrepresentable.</span><br><span class="dim" style="margin-left:18px;">Immutable types, private fields, defensive copies. Let the compiler help you.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">2.</span> <span class="em">Separate layers by concern.</span><br><span class="dim" style="margin-left:18px;">Math doesn't know about elections. Elections don't know about CLIs.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">3.</span> <span class="em">Thin wrappers, fat libraries.</span><br><span class="dim" style="margin-left:18px;">cmd/ parses flags. pkg/ does work. The engine is reusable.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">4.</span> <span class="em">Code should read like the specification.</span><br><span class="dim" style="margin-left:18px;">Name types and methods to match the domain. g.Exponentiate(r) not g.Op(r).</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">5.</span> <span class="em">Minimize dependencies.</span><br><span class="dim" style="margin-left:18px;">Own your core domain. Depend on others for everything else.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">6.</span> <span class="em">Match error handling to context.</span><br><span class="dim" style="margin-left:18px;">Errors for external input. Panics for programming bugs. Context matters.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">7.</span> <span class="em">Know what to leave out.</span><br><span class="dim" style="margin-left:18px;">A PoC proves the concept. Not every PoC needs a database, REST API, and Docker Compose.</span></div>
+    </div>
+  `
+},
+
+{
+  part: 'Part VIII: Takeaways',
+  title: 'By the Numbers',
+  html: `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num">6,565</div><div class="stat-label">Lines of Go</div></div>
+      <div class="stat-box"><div class="stat-num">12</div><div class="stat-label">Packages</div></div>
+      <div class="stat-box"><div class="stat-num">6</div><div class="stat-label">Layers</div></div>
+      <div class="stat-box"><div class="stat-num">2</div><div class="stat-label">Dependencies</div></div>
+    </div>
+    <div class="stat-grid" style="margin-top:4px;">
+      <div class="stat-box"><div class="stat-num">1</div><div class="stat-label">Interface</div></div>
+      <div class="stat-box"><div class="stat-num">4.8 MB</div><div class="stat-label">Binary</div></div>
+      <div class="stat-box"><div class="stat-num">0</div><div class="stat-label">Goroutines</div></div>
+      <div class="stat-box"><div class="stat-num">5/5</div><div class="stat-label">Proofs valid</div></div>
+    </div>
+    <div style="margin-top:24px; padding:16px; border:1px solid #d0d7de; border-radius:8px; text-align:center;">
+      <p style="color:#57606a; font-size:13px;">This reimplements the cryptographic core of a system used in real Swiss federal elections.</p>
+      <p style="color:#57606a; font-size:13px; margin-top:6px;">The production system: 14 repos, 500K+ lines, Java + Spring + Kubernetes + .NET + Angular.</p>
+      <p style="color:#1f2328; font-size:15px; font-weight:600; margin-top:12px;">Good architecture makes complex things simple.</p>
+    </div>
+  `
+},
+
+{
+  part: '',
+  html: `
+    <div class="title-card" style="padding-top:20vh;">
+      <div style="font-size:40px; margin-bottom:24px;">&#x1F4AC;</div>
+      <h1 style="font-size:24px;">Questions?</h1>
+      <div style="color:#8b949e; font-size:13px; margin-top:20px; line-height:1.8;">
+        <code style="color:#57606a;">go build ./cmd/evote && ./evote demo --voters=10 --options=3</code>
+      </div>
+    </div>
+  `
+}
+
+];
+
+let cur = 0;
+const stage = document.getElementById('stage');
+const prog = document.getElementById('progress-bar');
+const counter = document.getElementById('slide-counter');
+const partLbl = document.getElementById('part-label');
+
+function goNext() {
+  if (cur < S.length - 1) { cur++; render(); }
+}
+
+function goPrev() {
+  if (cur > 0) { cur--; render(); }
+}
+
+function render() {
+  const s = S[cur], total = S.length;
+  prog.style.width = ((cur/(total-1))*100)+'%';
+  counter.textContent = (cur+1)+' / '+total;
+  partLbl.textContent = s.part || '';
+  let h = '<div class="fade-in">';
+  if (s.title) h += '<div class="slide-title">'+s.title+'</div>';
+  h += '<div>'+s.html+'</div></div>';
+  stage.innerHTML = h;
+  stage.scrollTop = 0;
+  if (cur === S.length - 1) {
+    stage.innerHTML += '<div class="manual-cta"><button onclick="window.parent.postMessage({type:\'manual\'},\'*\')">Continue to Operations Manual &#8594;</button></div>';
+  }
+  // Update nav bar
+  document.getElementById('nav-prev').disabled = (cur === 0);
+  document.getElementById('nav-next').disabled = (cur === S.length - 1);
+  document.getElementById('nav-counter').textContent = (cur+1)+' / '+total;
+}
+
+window.addEventListener('keydown', function(e) {
+  if (e.key===' '||e.key==='Enter'||e.key==='ArrowRight'||e.key==='ArrowDown') {
+    e.preventDefault(); e.stopPropagation();
+    if (cur < S.length-1) { cur++; render(); }
+  } else if (e.key==='ArrowLeft'||e.key==='ArrowUp') {
+    e.preventDefault();
+    if (cur > 0) { cur--; render(); }
+  } else if (e.key==='Home') { e.preventDefault(); cur=0; render(); }
+  else if (e.key==='End') { e.preventDefault(); cur=S.length-1; render(); }
+}, true);
+
+let tx=0;
+document.addEventListener('touchstart', function(e){ tx=e.changedTouches[0].screenX; }, {passive: true});
+document.addEventListener('touchend', function(e){
+  const d=e.changedTouches[0].screenX-tx;
+  if(d<-60&&cur<S.length-1){cur++;render();}
+  else if(d>60&&cur>0){cur--;render();}
+});
+
+render();
+</script>
+</body>
+</html>

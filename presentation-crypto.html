@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture: Cryptographic E-Voting (Swiss Post)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow: hidden;
+    height: 100vh;
+  }
+  #progress-bar {
+    position: fixed; top: 0; left: 0;
+    height: 3px; background: #58a6ff;
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+  #slide-counter {
+    position: fixed; top: 10px; right: 20px;
+    font-size: 12px; color: #484f58;
+    z-index: 100;
+  }
+  #part-label {
+    position: fixed; top: 10px; left: 20px;
+    font-size: 11px; color: #484f58;
+    z-index: 100;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  #nav-hint {
+    position: fixed; bottom: 15px; right: 20px;
+    font-size: 11px; color: #30363d;
+    z-index: 100;
+  }
+  #stage {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 30px 60px;
+    height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #21262d #0d1117;
+  }
+  #stage::-webkit-scrollbar { width: 6px; }
+  #stage::-webkit-scrollbar-track { background: #0d1117; }
+  #stage::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+
+  .role-banner {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+  }
+  .slide-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #e6edf3;
+  }
+
+  /* Decision boxes (from the demo) */
+  .decision-box {
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    background: #161b22;
+  }
+  .decision-question { color: #8b949e; font-size: 13px; margin-bottom: 8px; }
+  .decision-answer {
+    font-size: 15px; font-weight: 700;
+    padding: 5px 14px; border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* Terminal-style code/crypto blocks */
+  .crypto-block {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+  }
+  .crypto-block .label { color: #8b949e; }
+  .crypto-block .value { color: #79c0ff; }
+  .crypto-block .secret { color: #f85149; }
+  .crypto-block .public { color: #56d364; }
+  .crypto-block .highlight { color: #d2a8ff; }
+  .crypto-block .dim { color: #484f58; }
+
+  /* Math blocks (formulas) */
+  .math-block {
+    background: #1a1520;
+    border: 1px solid #302040;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .math-block .def { color: #ffa657; font-weight: 600; }
+  .math-block .sym { color: #d2a8ff; }
+  .math-block .cmt { color: #6e7681; }
+  .math-block .grn { color: #56d364; }
+  .math-block .red { color: #f85149; }
+  .math-block .blu { color: #79c0ff; }
+
+  /* Pedagogical "think about it" boxes */
+  .think-box {
+    background: #1a1a0d;
+    border-left: 3px solid #f0c040;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #e6d8a8;
+    line-height: 1.7;
+  }
+  .think-box::before {
+    content: 'Pause and think';
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #f0c040;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* Key insight boxes */
+  .insight-box {
+    background: #0d1926;
+    border-left: 3px solid #58a6ff;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #a8c8e6;
+    line-height: 1.7;
+  }
+  .insight-box::before {
+    content: 'Key insight';
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #58a6ff;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* Warning/problem boxes */
+  .problem-box {
+    background: #1a0d0d;
+    border-left: 3px solid #f85149;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #e6a8a8;
+    line-height: 1.7;
+  }
+  .problem-box::before {
+    content: 'The problem';
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #f85149;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* Analogy boxes */
+  .analogy-box {
+    background: #0d1a14;
+    border-left: 3px solid #56d364;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #a8e6c8;
+    line-height: 1.7;
+  }
+  .analogy-box::before {
+    content: 'Analogy';
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #56d364;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* Recap/definition boxes */
+  .def-box {
+    background: #161b22;
+    border: 1px dashed #30363d;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #c9d1d9;
+    line-height: 1.7;
+  }
+  .def-box .def-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #8b949e;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  /* Voting card */
+  .card-box {
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 14px 0;
+    background: #1c1a12;
+    white-space: pre;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .proof-pass { color: #56d364; font-weight: 700; }
+  .proof-tree { color: #484f58; }
+
+  .result-box {
+    border: 2px solid #58a6ff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    background: #0d1926;
+    text-align: center;
+  }
+  .result-bar {
+    display: inline-block;
+    height: 18px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .verdict-box {
+    border: 2px solid #56d364;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 16px 0;
+    background: #0d2818;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .voter-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .voter-table th, .voter-table td {
+    padding: 6px 12px;
+    text-align: left;
+    border-bottom: 1px solid #21262d;
+  }
+  .voter-table th { color: #8b949e; font-weight: 600; }
+
+  /* Part divider slides */
+  .part-card {
+    text-align: center;
+    padding-top: 18vh;
+  }
+  .part-card .part-num {
+    font-size: 14px;
+    color: #484f58;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .part-card h1 {
+    font-size: 30px;
+    color: #e6edf3;
+    margin-bottom: 16px;
+    font-weight: 800;
+  }
+  .part-card .part-sub {
+    font-size: 15px;
+    color: #8b949e;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.8;
+  }
+
+  /* Title */
+  .title-card {
+    text-align: center;
+    padding-top: 10vh;
+  }
+  .title-card h1 {
+    font-size: 30px;
+    color: #e6edf3;
+    margin-bottom: 10px;
+    font-weight: 800;
+  }
+  .title-card .subtitle { font-size: 15px; color: #8b949e; margin-bottom: 6px; }
+  .title-card .swiss-cross { font-size: 56px; color: #f85149; margin-bottom: 24px; }
+  .title-card .start-hint {
+    color: #484f58; font-size: 13px; margin-top: 40px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* Role colors */
+  .role-chancellor { background: #f0c040; color: #0d1117; }
+  .role-cc { background: #00ff88; color: #0d1117; }
+  .role-voter { background: #60a0ff; color: #0d1117; }
+  .role-eb { background: #ff8844; color: #0d1117; }
+  .role-auditor { background: #ff4466; color: #0d1117; }
+  .role-system { background: #555; color: #e6edf3; }
+  .role-none { background: #30363d; color: #e6edf3; }
+  .color-chancellor { color: #f0c040; }
+  .color-cc { color: #00ff88; }
+  .color-voter { color: #60a0ff; }
+  .color-eb { color: #ff8844; }
+  .color-auditor { color: #ff4466; }
+  .color-system { color: #aaaaaa; }
+
+  .fade-in { animation: fadeIn 0.3s ease-in; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .em { color: #e6edf3; font-weight: 600; }
+  .dim { color: #484f58; }
+  .note { color: #8b949e; font-size: 13px; font-style: italic; }
+  h3 { color: #e6edf3; font-size: 16px; margin: 18px 0 8px; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 8px 20px; }
+  li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="slide-counter"></div>
+<div id="part-label"></div>
+<div id="nav-hint">Space / Enter / Arrow keys</div>
+<div id="stage"></div>
+
+<script>
+const SLIDES = [
+
+// ============================================================
+// TITLE
+// ============================================================
+{
+  part: '',
+  html: `
+    <div class="title-card">
+      <div class="swiss-cross">&#x1F1E8;&#x1F1ED;</div>
+      <h1>Cryptographic E-Voting</h1>
+      <div class="subtitle">A Lecture with Live Demo</div>
+      <div style="color:#58a6ff; font-size:14px; margin-top:8px;">
+        Based on the Swiss Post e-voting system
+      </div>
+      <div style="color:#484f58; font-size:13px; margin-top:20px; line-height:1.8;">
+        We will build up from first principles, then run<br>
+        a real election and verify every step with math.
+      </div>
+      <div class="start-hint">Press Space to begin</div>
+    </div>
+  `
+},
+
+// ============================================================
+// PART I: WHY IS THIS HARD?
+// ============================================================
+{
+  part: 'Part I: The Problem',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part I</div>
+      <h1>Why is E-Voting Hard?</h1>
+      <div class="part-sub">Before we touch any math, let's understand<br>what makes electronic voting one of the hardest<br>open problems in applied cryptography.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part I: The Problem',
+  title: 'The Contradictory Requirements',
+  html: `
+    <p>In a paper election, we take two things for granted that are actually in deep tension:</p>
+    <div style="display:flex; gap:20px; margin:20px 0;">
+      <div style="flex:1; background:#0d1926; border:1px solid #58a6ff; border-radius:8px; padding:16px;">
+        <div style="color:#58a6ff; font-weight:700; margin-bottom:8px;">Privacy</div>
+        <div style="font-size:13px;">Nobody should learn how you voted. Not the government, not your employer, not anyone.</div>
+      </div>
+      <div style="flex:1; background:#0d2818; border:1px solid #56d364; border-radius:8px; padding:16px;">
+        <div style="color:#56d364; font-weight:700; margin-bottom:8px;">Verifiability</div>
+        <div style="font-size:13px;">You (and the public) should be able to verify that the result is correct.</div>
+      </div>
+    </div>
+    <div class="think-box">Think about this tension for a moment. If nobody can see your vote, how can anyone verify the count is right? And if everyone can verify, doesn't that mean votes are visible?<br><br>In a paper election, we solve this with physical properties: sealed envelopes, physical mixing of ballots, public counting by humans. But in a digital system, there are no envelopes. Bits can be copied, modified, and traced. How do we square this circle?</div>
+  `
+},
+
+{
+  part: 'Part I: The Problem',
+  title: 'What Could Go Wrong?',
+  html: `
+    <p>Let's think like an attacker. In an electronic election, who might cheat?</p>
+    <div style="margin:14px 0;">
+      <div style="margin:8px 0;"><span class="em">The server</span> -- could silently change votes, add fake ballots, or drop real ones.</div>
+      <div style="margin:8px 0;"><span class="em">An insider</span> -- a system admin could read all votes and sell the data.</div>
+      <div style="margin:8px 0;"><span class="em">A man-in-the-middle</span> -- could intercept your vote between your browser and the server.</div>
+      <div style="margin:8px 0;"><span class="em">The voting software itself</span> -- could display "Alice" but actually send "Bob".</div>
+    </div>
+    <div class="problem-box">The fundamental challenge: in an electronic system, the entity that <em>runs</em> the election is also the entity most capable of <em>cheating</em>. We need a protocol where <strong>you don't have to trust anyone</strong> -- not the server, not the operators, not even the software on your machine.</div>
+  `
+},
+
+{
+  part: 'Part I: The Problem',
+  title: 'The Three Properties We Need',
+  html: `
+    <p>Cryptographers have formalized what a secure electronic election requires:</p>
+    <div class="def-box">
+      <div class="def-title">Property 1: Ballot secrecy</div>
+      No coalition of insiders can determine how any individual voted.<br>
+      <span class="dim">Formally: the system is IND-CPA secure -- encrypted votes are computationally indistinguishable.</span>
+    </div>
+    <div class="def-box">
+      <div class="def-title">Property 2: Individual verifiability</div>
+      Each voter can personally verify: "my vote was recorded as I intended."<br>
+      <span class="dim">Without this, a malicious voting device could silently flip your vote.</span>
+    </div>
+    <div class="def-box">
+      <div class="def-title">Property 3: Universal verifiability</div>
+      Anyone (even a random citizen with no special access) can verify: "the published result matches the submitted ballots, and no ballots were added, removed, or changed."<br>
+      <span class="dim">This is the big one. It means the entire election is publicly auditable using math alone.</span>
+    </div>
+    <div class="insight-box">The Swiss Post system achieves all three simultaneously. That's what we're about to see.</div>
+  `
+},
+
+{
+  part: 'Part I: The Problem',
+  title: 'The High-Level Idea',
+  html: `
+    <p>Here's the plan, in plain language. We'll formalize everything later.</p>
+    <ol style="line-height:2.2;">
+      <li><span class="em">Encrypt</span> every vote in the voter's browser. The server stores only ciphertext -- random-looking noise.</li>
+      <li><span class="em">Shuffle</span> the encrypted votes through multiple independent nodes, so nobody can trace a ciphertext back to a voter.</li>
+      <li><span class="em">Prove</span> each shuffle was honest, using zero-knowledge proofs. Anyone can verify these proofs.</li>
+      <li><span class="em">Decrypt</span> only after shuffling. The result comes out in random order -- votes are visible, but voter identities are lost.</li>
+    </ol>
+    <div class="analogy-box">Imagine 6 people write their votes on paper and seal them in identical envelopes. The envelopes pass through 5 rooms. In each room, a person secretly rearranges them, puts each into a new envelope, and slides them under the door to the next room. After 5 rooms, nobody can remember the order. Now you open them and count. That's a mix-net. Except we need to do it digitally, and prove nobody cheated in any room.</div>
+  `
+},
+
+// ============================================================
+// PART II: THE MATH TOOLKIT
+// ============================================================
+{
+  part: 'Part II: The Math',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part II</div>
+      <h1>The Mathematical Toolkit</h1>
+      <div class="part-sub">Three building blocks you need to understand<br>before the election makes sense:<br><br>
+      1. Cyclic groups &amp; the discrete log problem<br>
+      2. ElGamal encryption<br>
+      3. Zero-knowledge proofs</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Building Block 1: The Group',
+  html: `
+    <p>All the crypto happens inside a mathematical <span class="em">group</span>. Let's build one from scratch.</p>
+    <div class="math-block"><span class="def">Step 1: Pick a special prime</span>
+
+  Find q such that q is prime and p = 2q + 1 is also prime.
+  We call p a <span class="blu">"safe prime"</span> and q a <span class="blu">"Sophie Germain prime"</span>.
+
+  <span class="cmt">Example with small numbers:</span>
+    q = 11,  p = 23   <span class="cmt">(both prime -- good!)</span>
+
+  <span class="cmt">Our demo uses:</span>
+    q = 10245600668722036293702222164916888631...  <span class="cmt">(256 bits)</span>
+    p = 20491201337444072587404444329833777262...  <span class="cmt">(257 bits)</span></div>
+    <div class="math-block"><span class="def">Step 2: Take the quadratic residues mod p</span>
+
+  G<sub>q</sub> = { x &isin; Z<sub>p</sub>* : x = y<sup>2</sup> mod p for some y }
+
+  <span class="cmt">English: "all numbers that are perfect squares mod p."</span>
+  <span class="cmt">This set has exactly q elements, and q is prime.</span>
+  <span class="cmt">That means G<sub>q</sub> is a cyclic group of prime order -- the simplest possible group structure.</span>
+
+  <span class="cmt">With p=23:</span>  G<sub>11</sub> = {1, 2, 3, 4, 6, 8, 9, 12, 13, 16, 18}  <span class="cmt">(11 elements)</span></div>
+    <div class="math-block"><span class="def">Step 3: Pick a generator g</span>
+
+  g = 4  <span class="cmt">(= 2<sup>2</sup>, a quadratic residue)</span>
+
+  <span class="cmt">Every element of G<sub>q</sub> can be written as g<sup>k</sup> for some k.</span>
+  <span class="cmt">With p=23: 4<sup>1</sup>=4, 4<sup>2</sup>=16, 4<sup>3</sup>=18, 4<sup>4</sup>=3, ... cycles through all 11 elements.</span></div>
+    <div class="think-box">Why do we need the group to have <em>prime</em> order? Because prime order means there are no non-trivial subgroups. This prevents "small subgroup attacks" where an attacker could leak information about secrets by trapping values in a small subgroup. With prime order q, every element except 1 generates the whole group.</div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Building Block 1b: The Discrete Log Problem',
+  html: `
+    <p>The security of everything that follows rests on one assumption:</p>
+    <div class="def-box">
+      <div class="def-title">The Discrete Logarithm Problem (DLog)</div>
+      Given g and h = g<sup>x</sup> mod p, find x.<br><br>
+      <span class="dim">Going "forward" (computing g<sup>x</sup>) is fast: O(log x) multiplications.</span><br>
+      <span class="dim">Going "backward" (finding x from g<sup>x</sup>) is believed to be infeasible: best known algorithms take O(&#8730;q) steps.</span>
+    </div>
+    <div class="analogy-box">Think of it like a one-way street. You can easily compute 4<sup>x</sup> mod p for any x. But if I give you the result and ask "what was x?" -- you're stuck. For 256-bit q, brute force would take ~2<sup>128</sup> operations. That's more than the number of atoms in the universe.</div>
+    <div class="insight-box">This asymmetry is the foundation. Secret keys are exponents (easy to compute with, hard to extract from public values). Everything -- encryption, proofs, shuffles -- exploits this one-way door.</div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Building Block 2: ElGamal Encryption',
+  html: `
+    <p>Now we can encrypt. <span class="em">ElGamal encryption</span> hides a message inside the group using the discrete log problem.</p>
+    <div class="math-block"><span class="def">Key generation:</span>
+  sk &larr; random number in {1, ..., q-1}     <span class="red">(secret key -- just a number)</span>
+  pk = g<sup>sk</sup> mod p                          <span class="grn">(public key -- publish this)</span>
+
+<span class="def">Encryption of message m &isin; G<sub>q</sub>:</span>
+  r  &larr; random number in {1, ..., q-1}     <span class="cmt">(fresh randomness, used once)</span>
+  &gamma;  = g<sup>r</sup> mod p
+  &phi;  = pk<sup>r</sup> &middot; m mod p
+
+  <span class="def">Ciphertext = (&gamma;, &phi;)</span>
+
+<span class="def">Decryption:</span>
+  m  = &phi; / &gamma;<sup>sk</sup> mod p
+     = (pk<sup>r</sup> &middot; m) / (g<sup>r</sup>)<sup>sk</sup>
+     = (g<sup>sk&middot;r</sup> &middot; m) / g<sup>sk&middot;r</sup>
+     = m                                    <span class="grn">the pk<sup>r</sup> cancels out!</span></div>
+    <div class="think-box">Notice that the randomness r appears in both &gamma; and &phi;. If you encrypt "Alice" twice with different r values, you get two completely different ciphertexts. This is crucial: the server can't tell if two voters made the same choice by comparing ciphertexts.</div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Building Block 2b: The Re-Encryption Trick',
+  html: `
+    <p>Here's the magical property that makes the whole mix-net possible:</p>
+    <div class="def-box">
+      <div class="def-title">ElGamal Re-Encryption</div>
+      Given a ciphertext (&gamma;, &phi;) encrypting some unknown message m, anyone can produce a <em>new</em> ciphertext (&gamma;', &phi;') that also encrypts m -- without knowing m or the secret key.
+    </div>
+    <div class="math-block"><span class="def">Re-Encryption:</span>
+  <span class="cmt">Given: (&gamma;, &phi;) = (g<sup>r</sup>, pk<sup>r</sup> &middot; m)    -- ciphertext for m</span>
+
+  <span class="cmt">Pick fresh randomness:</span>
+  r' &larr; random
+
+  <span class="cmt">Compute:</span>
+  &gamma;' = g<sup>r'</sup>  &middot; &gamma;  = g<sup>r'+r</sup>
+  &phi;' = pk<sup>r'</sup> &middot; &phi;  = pk<sup>r'+r</sup> &middot; m
+
+  <span class="cmt">Result: (&gamma;', &phi;') is a valid encryption of the same m</span>
+  <span class="cmt">with combined randomness (r' + r) instead of r.</span></div>
+    <div class="insight-box">This is the core trick of the mix-net. A shuffle node can take a ciphertext, re-encrypt it (changing every bit), and the result still decrypts to the same vote. The new ciphertext looks <em>completely unrelated</em> to the old one -- even to someone who sees both. Under the DDH assumption, no efficient algorithm can link them.</div>
+    <div class="think-box">This doesn't require the secret key! Anyone with just the public key can re-encrypt. That's why a mix-node doesn't need to decrypt in order to shuffle -- it just permutes and re-encrypts.</div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Building Block 3: Zero-Knowledge Proofs',
+  html: `
+    <p>The last building block. We need a way to prove statements without revealing secrets.</p>
+    <div class="def-box">
+      <div class="def-title">Zero-Knowledge Proof</div>
+      A protocol where a <em>prover</em> convinces a <em>verifier</em> that a statement is true, without revealing <em>any</em> information beyond the truth of the statement itself.
+    </div>
+    <div class="analogy-box"><strong>The Ali Baba cave:</strong> Imagine a circular cave with a locked door in the middle. I claim I know the secret word that opens the door. You stand at the entrance. I go in and randomly take the left or right path. You then shout "come out the left side!" or "come out the right side!" If I know the word, I can always comply (opening the door if needed). If I don't, I can only comply 50% of the time. After 100 rounds, you're convinced. But you learned <em>nothing</em> about the secret word -- you could have simulated this whole exchange yourself by recording only the rounds where I got lucky.</div>
+    <p>We'll use two kinds of zero-knowledge proofs:</p>
+    <ol>
+      <li><span class="em">Schnorr proof</span> -- "I know the secret key behind this public key" (used for key holders)</li>
+      <li><span class="em">Bayer-Groth argument</span> -- "I shuffled these ciphertexts honestly" (used for mix-nodes)</li>
+    </ol>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'The Schnorr Protocol (Step by Step)',
+  html: `
+    <p>Let's see a concrete zero-knowledge proof. I want to prove I know <span class="secret">sk</span> such that <span class="public">pk</span> = g<sup>sk</sup>, without revealing sk.</p>
+    <div class="math-block"><span class="def">The Schnorr &Sigma;-protocol (interactive version):</span>
+
+  <span class="blu">Prover (knows sk)</span>                        <span class="grn">Verifier (knows only pk)</span>
+
+  <span class="cmt">1.</span> Pick random b &larr; Z<sub>q</sub>
+     Compute c = g<sup>b</sup>
+                              <span class="cmt">--- send c ---&gt;</span>
+                                                 <span class="cmt">2.</span> Pick random challenge e &larr; Z<sub>q</sub>
+                              <span class="cmt">&lt;-- send e ---</span>
+  <span class="cmt">3.</span> Compute z = b + e &middot; sk mod q
+                              <span class="cmt">--- send z ---&gt;</span>
+                                                 <span class="cmt">4.</span> Check: g<sup>z</sup> == c &middot; pk<sup>e</sup> ?
+
+<span class="def">Why does the check work?</span>
+  g<sup>z</sup> = g<sup>(b + e&middot;sk)</sup> = g<sup>b</sup> &middot; g<sup>e&middot;sk</sup> = c &middot; (g<sup>sk</sup>)<sup>e</sup> = c &middot; pk<sup>e</sup>  <span class="grn">always passes for honest prover</span></div>
+    <div class="think-box"><strong>Why is this zero-knowledge?</strong> The verifier sees (c, e, z). But they could have <em>generated the same transcript themselves</em> without the prover: pick any z and e, compute c = g<sup>z</sup> &middot; pk<sup>-e</sup>. This "simulated" transcript is indistinguishable from a real one. So the proof reveals no information about sk.
+
+<strong>Why is this sound?</strong> If you could answer two different challenges e and e' for the same commitment c, then from z - z' = (e - e') &middot; sk mod q, we can extract sk. So a cheater who doesn't know sk can only guess one challenge correctly -- probability 1/q (negligible).</div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Making Proofs Non-Interactive (Fiat-Shamir)',
+  html: `
+    <p>The Schnorr protocol is interactive (the verifier sends a challenge). For an election, we need proofs anyone can check later, with no interaction.</p>
+    <div class="def-box">
+      <div class="def-title">The Fiat-Shamir Heuristic</div>
+      Replace the verifier's random challenge with a hash of the commitment:<br><br>
+      <span style="color:#e6edf3;">e = H(g, pk, c)</span><br><br>
+      The prover computes the challenge themselves using a hash function. Since the hash is unpredictable (modeled as a "random oracle"), the prover can't cheat by picking c to match a pre-chosen e.
+    </div>
+    <div class="math-block"><span class="def">Non-interactive Schnorr proof:</span>
+
+  <span class="cmt">Prover computes:</span>
+  b &larr; Z<sub>q</sub>,  c = g<sup>b</sup>,  e = H(g, pk, c),  z = b + e&middot;sk mod q
+
+  <span class="def">Publish proof = (e, z)</span>   <span class="cmt">(just two numbers!)</span>
+
+  <span class="cmt">Anyone can verify:</span>
+  c' = g<sup>z</sup> &middot; pk<sup>-e</sup>   <span class="cmt">(recompute commitment from proof)</span>
+  check: H(g, pk, c') == e ?</div>
+    <div class="insight-box">This is how all proofs work in the Swiss Post system. Every proof is non-interactive: just a few numbers that anyone can verify with public data, at any time, without contacting the prover. The hash function (SHA3-256) acts as the "honest verifier" that nobody can manipulate.</div>
+  `
+},
+
+{
+  part: 'Part II: The Math',
+  title: 'Recap: Our Toolkit',
+  html: `
+    <p>Before we start the election, let's recap what we have:</p>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; margin:20px 0;">
+      <div style="flex:1; min-width:250px; background:#1a1520; border:1px solid #302040; border-radius:8px; padding:14px;">
+        <div style="color:#d2a8ff; font-weight:700; margin-bottom:6px;">G<sub>q</sub> (cyclic group)</div>
+        <div style="font-size:13px;">Quadratic residues mod safe prime p. Prime order q. Generator g = 4. Hard discrete log.</div>
+      </div>
+      <div style="flex:1; min-width:250px; background:#0d1926; border:1px solid #58a6ff22; border-radius:8px; padding:14px;">
+        <div style="color:#79c0ff; font-weight:700; margin-bottom:6px;">ElGamal encryption</div>
+        <div style="font-size:13px;">Encrypt: (&gamma;, &phi;) = (g<sup>r</sup>, pk<sup>r</sup>&middot;m). Random r makes each ciphertext unique. Can re-encrypt without decrypting.</div>
+      </div>
+      <div style="flex:1; min-width:250px; background:#0d2818; border:1px solid #56d36422; border-radius:8px; padding:14px;">
+        <div style="color:#56d364; font-weight:700; margin-bottom:6px;">Zero-knowledge proofs</div>
+        <div style="font-size:13px;">Prove knowledge of secrets without revealing them. Schnorr for keys, Bayer-Groth for shuffles. Non-interactive via Fiat-Shamir.</div>
+      </div>
+    </div>
+    <p>Now let's run an election and see how these pieces fit together.</p>
+    <div class="think-box">As we go through the election, keep asking yourself: "Where is the privacy coming from?" and "Where is the verifiability coming from?" You'll see that privacy comes from <em>encryption + re-encryption shuffles</em>, and verifiability comes from <em>zero-knowledge proofs at every step</em>.</div>
+  `
+},
+
+// ============================================================
+// PART III: THE ELECTION
+// ============================================================
+{
+  part: 'Part III: The Election',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part III</div>
+      <h1>Running the Election</h1>
+      <div class="part-sub">6 voters. 2 candidates. 4 control components + 1 electoral board.<br>
+      You'll play every role. Every cryptographic step is real.</div>
+    </div>
+  `
+},
+
+// --- Phase 1: Setup ---
+{
+  part: 'Part III: The Election',
+  role: 'Canton Chancellor',
+  roleClass: 'role-chancellor',
+  title: 'Phase 1: Setup -- Opening the Election',
+  html: `
+    <p>The <span class="em color-chancellor">Canton Chancellor</span> authorizes the election and defines the ballot: 2 candidates, Alice and Bob.</p>
+    <div class="decision-box">
+      <div class="decision-question">Open e-voting and define the ballot?</div>
+      <div class="decision-answer role-chancellor">2 candidates: Alice &amp; Bob</div>
+    </div>
+    <p>The system generates the cryptographic group parameters:</p>
+    <div class="crypto-block"><span class="label">q</span> = <span class="value">10245600668722036293702222164916888631330197805508297010550295815994300344810<span class="dim">1</span></span>
+<span class="label">p</span> = <span class="value">20491201337444072587404444329833777262660395611016594021100591631988600689620<span class="dim">3</span></span>
+<span class="label">g</span> = <span class="value">4</span>    <span class="dim">p = 2q+1, both prime, |p| = 257 bits</span></div>
+    <p>Candidates are encoded as group elements:</p>
+    <div class="crypto-block"><span class="value">Alice</span> = 2<sup>2</sup> = <span class="highlight">4</span> &isin; G<sub>q</sub>
+<span class="value">Bob</span>   = 3<sup>2</sup> = <span class="highlight">9</span> &isin; G<sub>q</sub></div>
+    <div class="insight-box"><strong>Why square the primes?</strong> We need encodings inside G<sub>q</sub> (the quadratic residues). Squaring any number mod p guarantees it lands in G<sub>q</sub>. Small primes are used so that after decryption, we can recover the vote by trial division: if the decrypted value is 4 = 2<sup>2</sup>, the vote was Alice. If it's 9 = 3<sup>2</sup>, Bob.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'CC0 Operator (Bern)',
+  roleClass: 'role-cc',
+  title: 'Distributed Key Generation',
+  html: `
+    <p>You are <span class="em color-cc">CC0, the operator in Bern</span>. You sit at an air-gapped machine. Your job: generate one piece of the election's encryption key.</p>
+    <div class="decision-box">
+      <div class="decision-question">Generate your key pair?</div>
+      <div class="decision-answer role-cc">Generate my key</div>
+    </div>
+    <div class="crypto-block"><span class="secret">sk[0]</span> = 490298081064930195553874605087930422904...  <span class="dim">(random, 77 digits)</span>
+<span class="secret">sk[1]</span> = 906260723715705230338812685464779149349...  <span class="dim">(random, 77 digits)</span>
+
+<span class="public">pk[0]</span> = g<sup>sk[0]</sup> mod p = 164907173125453164942397900344209023580...
+<span class="public">pk[1]</span> = g<sup>sk[1]</sup> mod p = 865964935823822544135231120873786690830...</div>
+    <div class="insight-box"><strong>Why two components?</strong> The system uses "wide" ElGamal with w=2 components per ciphertext. This is needed for the return code protocol (which we'll skip in detail). The important point: the secret key is a <em>vector</em> (sk[0], sk[1]) and the public key is a <em>vector</em> (pk[0], pk[1]).</div>
+    <p class="note">There are 5 key holders total: 4 Control Components (Bern, Zurich, Geneva, Lugano) + 1 Electoral Board. Each generates independently.</p>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'CC0 Operator (Bern)',
+  roleClass: 'role-cc',
+  title: 'Proving You Know Your Key (Schnorr)',
+  html: `
+    <p>You just generated a secret key. But how does the world know you <em>actually know</em> the secret behind your public key, and didn't just pick a random number as pk?</p>
+    <p>Answer: you generate a <span class="em">Schnorr proof</span>. This is exactly the protocol we studied in Part II.</p>
+    <div class="decision-box">
+      <div class="decision-question">Generate the Schnorr proof?</div>
+      <div class="decision-answer role-cc">Generate proof</div>
+    </div>
+    <div class="crypto-block"><span class="highlight">1.</span> b &larr; Z<sub>q</sub>,  c = g<sup>b</sup> = <span class="public">196993736651760197696345266502366676991...</span>
+<span class="highlight">2.</span> e = H(p, q, g, pk, c) = <span class="value">280555736662452288549346417809892436748...</span>
+<span class="highlight">3.</span> z = b + e&middot;sk mod q = <span class="value">137947587127192694451619751067570738829...</span>
+
+<span class="label">Proof = (e, z)</span>   <span class="dim">Two numbers. Anyone can check: g<sup>z</sup> &middot; pk<sup>-e</sup> recomputes c, then H(... c) == e.</span>
+<span class="dim">Self-check:</span> g<sup>z</sup> == c &middot; pk<sup>e</sup>  <span class="public">PROOF VALID</span></div>
+    <div class="think-box">After this proof, anyone in the world can verify that the CC0 operator in Bern <em>genuinely knows</em> the secret key behind their public key. But the proof reveals <em>zero information</em> about what that secret key is. This is the Schnorr &Sigma;-protocol + Fiat-Shamir in action -- exactly as we defined it.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'CC0 Operator (Bern)',
+  roleClass: 'role-cc',
+  title: 'The Other Key Holders',
+  html: `
+    <p>Three more Control Components do the same (key generation + Schnorr proof), each on their own air-gapped machine in a different Swiss city:</p>
+    <div class="crypto-block"><span class="color-cc">CC1 (Zurich):</span>  sk<sub>1</sub> &larr; Z<sub>q</sub>,  pk<sub>1</sub> = g<sup>sk<sub>1</sub></sup>,  Schnorr proof <span class="public">VALID</span>
+<span class="color-cc">CC2 (Geneva):</span>  sk<sub>2</sub> &larr; Z<sub>q</sub>,  pk<sub>2</sub> = g<sup>sk<sub>2</sub></sup>,  Schnorr proof <span class="public">VALID</span>
+<span class="color-cc">CC3 (Lugano):</span>  sk<sub>3</sub> &larr; Z<sub>q</sub>,  pk<sub>3</sub> = g<sup>sk<sub>3</sub></sup>,  Schnorr proof <span class="public">VALID</span></div>
+    <p>The <span class="em color-eb">Electoral Board</span> generates the 5th key (derived from board members' passwords via Argon2id):</p>
+    <div class="crypto-block"><span class="color-eb">EB (Electoral Board):</span>  sk<sub>4</sub> = KDF(passwords),  pk<sub>4</sub> = g<sup>sk<sub>4</sub></sup></div>
+    <p>Now, combine all 5 public keys by multiplication:</p>
+    <div class="crypto-block"><span class="label">ElectionPK</span> = pk<sub>0</sub> &middot; pk<sub>1</sub> &middot; pk<sub>2</sub> &middot; pk<sub>3</sub> &middot; pk<sub>4</sub> mod p
+             = g<sup>(sk<sub>0</sub> + sk<sub>1</sub> + sk<sub>2</sub> + sk<sub>3</sub> + sk<sub>4</sub>)</sup> mod p
+             = <span class="highlight">187387247443810368528889414473024386338505450542...</span></div>
+    <div class="insight-box"><strong>Nobody ever computes the full secret key.</strong> The combined secret sk = sk<sub>0</sub> + ... + sk<sub>4</sub> mod q exists mathematically, but no single machine ever holds it. To decrypt, all 5 must cooperate -- each removing their own layer. This is an additive secret sharing with threshold 5-of-5.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'Registry Officer',
+  roleClass: 'role-chancellor',
+  title: 'Printing the Voting Cards',
+  html: `
+    <p>Each voter gets a physical card in the mail with secret codes. This card is the basis for <span class="em">individual verifiability</span>.</p>
+    <div class="card-box">  +------------------------------------------------------+
+  |              SWISS CONFEDERATION                     |
+  |           Electronic Voting Card                     |
+  |                                                      |
+  |  Voter ID:           voter-0000                      |
+  |  Start Voting Key:   <span class="highlight">SVK-0000</span>   <span class="dim">(to log in)</span>            |
+  |  Ballot Casting Key: <span class="highlight">BCK-0000</span>   <span class="dim">(to confirm)</span>           |
+  |                                                      |
+  |  Choice Return Codes:                                |
+  |    Alice:  <span class="value">CC00</span>   <span class="dim">(you'll see this if Alice recorded)</span> |
+  |    Bob:    <span class="value">CC01</span>   <span class="dim">(you'll see this if Bob recorded)</span>   |
+  |                                                      |
+  |  Vote Cast Code:     <span class="value">VCC00</span>  <span class="dim">(confirms vote is sealed)</span>  |
+  +------------------------------------------------------+</div>
+    <table class="voter-table">
+      <tr><th>Voter</th><th>SVK</th><th>BCK</th><th>Alice</th><th>Bob</th><th>VCC</th></tr>
+      <tr><td>Anna</td><td>SVK-0000</td><td>BCK-0000</td><td>CC00</td><td>CC01</td><td>VCC00</td></tr>
+      <tr><td>Beat</td><td>SVK-0001</td><td>BCK-0001</td><td>CC10</td><td>CC11</td><td>VCC01</td></tr>
+      <tr><td>Clara</td><td>SVK-0002</td><td>BCK-0002</td><td>CC20</td><td>CC21</td><td>VCC02</td></tr>
+      <tr><td>Daniel</td><td>SVK-0003</td><td>BCK-0003</td><td>CC30</td><td>CC31</td><td>VCC03</td></tr>
+      <tr><td>Eva</td><td>SVK-0004</td><td>BCK-0004</td><td>CC40</td><td>CC41</td><td>VCC04</td></tr>
+      <tr><td>Fritz</td><td>SVK-0005</td><td>BCK-0005</td><td>CC50</td><td>CC51</td><td>VCC05</td></tr>
+    </table>
+    <div class="think-box"><strong>Why does individual verifiability need a physical card?</strong> The voting software on your computer could be compromised. If the return code was generated by the same software, a virus could fake it. But the code on the <em>paper card</em> was generated during setup by the 4 CCs -- completely independent of your browser. If the code on screen matches the code on paper, no single compromised component could have faked it.</div>
+  `
+},
+
+// --- Phase 2: Voting ---
+{
+  part: 'Part III: The Election',
+  html: `
+    <div class="part-card" style="padding-top:20vh;">
+      <div class="part-num">Phase 2</div>
+      <h1>Voting</h1>
+      <div class="part-sub">6 voters cast their ballots. All encryption<br>happens in the browser. The server sees only noise.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'Voter Anna',
+  roleClass: 'role-voter',
+  title: 'Anna Votes for Alice',
+  html: `
+    <p>You are <span class="em color-voter">Anna</span>. You open the voting portal, enter SVK-0000, and select Alice.</p>
+    <div class="decision-box">
+      <div class="decision-question">Who do you vote for?</div>
+      <div class="decision-answer role-voter">Alice</div>
+    </div>
+    <p>Your browser executes the ElGamal encryption we studied:</p>
+    <div class="math-block"><span class="cmt">m = encode(Alice) = 4</span>
+<span class="cmt">r &larr; Z<sub>q</sub>  (random, used once)</span>
+r = <span class="red">833704513946265251405968611993787771762...</span>
+
+&gamma; = g<sup>r</sup> mod p       = <span class="sym">183571083508143527798599308812874641392...</span>
+&phi; = ElectionPK<sup>r</sup>&middot;4 mod p = <span class="sym">136498980446327435592002680136840893911...</span>
+
+<span class="def">Sent to server: (&gamma;, &phi;)   -- two numbers, pure noise.</span></div>
+    <p>The server triggers the 4 CCs to compute the return code. Anna sees:</p>
+    <div class="crypto-block"><span class="label">Screen:</span>  Choice Return Code = <span class="highlight">CC00</span>
+<span class="label">Card:</span>    Alice = <span class="highlight">CC00</span>  <span class="public">MATCH!</span>   <span class="dim">&larr; "My vote was recorded as Alice."</span>
+
+<span class="dim">Anna enters BCK-0000 to confirm.</span>
+<span class="label">Screen:</span>  Vote Cast Code = <span class="highlight">VCC00</span>
+<span class="label">Card:</span>    VCC = <span class="highlight">VCC00</span>  <span class="public">MATCH!</span>   <span class="dim">&larr; "My vote is sealed."</span></div>
+    <div class="insight-box"><strong>What just happened cryptographically:</strong> Anna's browser encrypted "4" under the ElectionPK. The server stored (&gamma;, &phi;) -- which is computationally indistinguishable from a random pair of group elements (IND-CPA under DDH). The return code CC00 was computed by 4 independent CCs doing partial decryptions of a pre-computed code -- no single CC learned Anna's choice. Anna verified using a code from a <em>physical card</em> that was generated offline.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'Voters',
+  roleClass: 'role-voter',
+  title: 'The Remaining 5 Voters',
+  html: `
+    <p>Five more voters go through the same process. Each browser independently generates a random r and encrypts.</p>
+    <div class="crypto-block"><span class="color-voter">Beat</span>    votes <span class="em">Alice</span>  <span class="dim">| &gamma;=g<sup>r<sub>1</sub></sup>, &phi;=PK<sup>r<sub>1</sub></sup>&middot;4 |</span> CC10 <span class="public">MATCH</span> | BCK-0001 | VCC01 <span class="public">MATCH</span>
+<span class="color-voter">Clara</span>   votes <span class="em">Alice</span>  <span class="dim">| &gamma;=g<sup>r<sub>2</sub></sup>, &phi;=PK<sup>r<sub>2</sub></sup>&middot;4 |</span> CC20 <span class="public">MATCH</span> | BCK-0002 | VCC02 <span class="public">MATCH</span>
+<span class="color-voter">Daniel</span>  votes <span class="em">Alice</span>  <span class="dim">| &gamma;=g<sup>r<sub>3</sub></sup>, &phi;=PK<sup>r<sub>3</sub></sup>&middot;4 |</span> CC30 <span class="public">MATCH</span> | BCK-0003 | VCC03 <span class="public">MATCH</span>
+<span class="color-voter">Eva</span>     votes <span class="em">Alice</span>  <span class="dim">| &gamma;=g<sup>r<sub>4</sub></sup>, &phi;=PK<sup>r<sub>4</sub></sup>&middot;4 |</span> CC40 <span class="public">MATCH</span> | BCK-0004 | VCC04 <span class="public">MATCH</span>
+<span class="color-voter">Fritz</span>   votes <span class="em">Bob</span>    <span class="dim">| &gamma;=g<sup>r<sub>5</sub></sup>, &phi;=PK<sup>r<sub>5</sub></sup>&middot;9 |</span> CC51 <span class="public">MATCH</span> | BCK-0005 | VCC05 <span class="public">MATCH</span></div>
+    <div class="think-box"><strong>Notice:</strong> Anna, Beat, Clara, Daniel, and Eva all voted for Alice (m=4). But each used a different random r<sub>i</sub>, so all 5 ciphertexts are <em>completely different</em>. The server cannot tell, by looking at the ciphertexts, that these 5 voters made the same choice. This is the IND-CPA property of ElGamal in action.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  title: 'Voting Closed -- What the Server Sees',
+  html: `
+    <p style="font-size:18px; color:#e6edf3; margin-bottom:16px;">6 ballots cast. Voting period over.</p>
+    <div class="crypto-block"><span class="label">The server's ballot box (hex-encoded ciphertexts):</span>
+
+  <span class="dim">[0] Anna   </span> <span class="value">E01E83B2B8...B8A0745F41</span>
+  <span class="dim">[1] Beat   </span> <span class="value">DE73EEB649...C3E0A5FAF2</span>
+  <span class="dim">[2] Clara  </span> <span class="value">FF1D9B7179...735424E93A</span>
+  <span class="dim">[3] Daniel </span> <span class="value">4931157C26...9D6A03E982</span>
+  <span class="dim">[4] Eva    </span> <span class="value">13C275835F...BF41E92D91</span>
+  <span class="dim">[5] Fritz  </span> <span class="value">1232996CD9...3791B60DCF</span></div>
+    <div class="problem-box">We could decrypt these right now and count. But there's a problem: ciphertext [0] belongs to Anna, [1] to Beat, etc. If we decrypt in order, we learn <em>who voted for what</em>. That violates ballot secrecy. We need to break the link between the voter's identity and their ciphertext <em>before</em> decrypting.</div>
+    <p>This is where the mix-net comes in.</p>
+  `
+},
+
+// --- Phase 3: Tally ---
+{
+  part: 'Part III: The Election',
+  html: `
+    <div class="part-card" style="padding-top:20vh;">
+      <div class="part-num">Phase 3</div>
+      <h1>Tally: The Mix-Net</h1>
+      <div class="part-sub">5 nodes shuffle the ballots in sequence.<br>Each proves its shuffle was honest.<br>Then the votes are decrypted in random order.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'CC0 Operator (Bern)',
+  roleClass: 'role-cc',
+  title: 'CC0 Shuffles the Ballots',
+  html: `
+    <p>As CC0, you receive the 6 ciphertexts. You will <span class="em">permute</span> them and <span class="em">re-encrypt</span> each one.</p>
+    <div class="decision-box">
+      <div class="decision-question">Begin your shuffle?</div>
+      <div class="decision-answer role-cc">Shuffle now</div>
+    </div>
+    <div class="math-block"><span class="def">What you do:</span>
+
+  <span class="cmt">1. Pick a random permutation &pi; &isin; S<sub>6</sub>:</span>
+     &pi; = <span class="red">[0, 2, 4, 3, 5, 1]</span>  <span class="cmt">(slot 0 stays, slot 1&rarr;2, slot 2&rarr;4, ...)</span>
+
+  <span class="cmt">2. For each output slot k, re-encrypt the permuted input:</span>
+     r'<sub>k</sub> &larr; Z<sub>q</sub>     <span class="cmt">(fresh random per slot)</span>
+     C'<sub>k</sub> = (g<sup>r'<sub>k</sub></sup> &middot; &gamma;<sub>&pi;(k)</sub>,  PK<sup>r'<sub>k</sub></sup> &middot; &phi;<sub>&pi;(k)</sub>)
+
+  <span class="cmt">3. DESTROY &pi; and all r'<sub>k</sub> values.</span>
+
+  <span class="cmt">4. Also: partial decryption -- remove CC0's encryption layer.</span></div>
+    <div class="crypto-block"><span class="label">=== INPUT (in voter order) ===</span>
+  <span class="dim">[0]</span> <span class="value">E01E83B2B8...B8A0745F41</span>  <span class="dim">&larr; Anna</span>
+  <span class="dim">[1]</span> <span class="value">DE73EEB649...C3E0A5FAF2</span>  <span class="dim">&larr; Beat</span>
+  <span class="dim">[2]</span> <span class="value">FF1D9B7179...735424E93A</span>  <span class="dim">&larr; Clara</span>
+  <span class="dim">[3]</span> <span class="value">4931157C26...9D6A03E982</span>  <span class="dim">&larr; Daniel</span>
+  <span class="dim">[4]</span> <span class="value">13C275835F...BF41E92D91</span>  <span class="dim">&larr; Eva</span>
+  <span class="dim">[5]</span> <span class="value">1232996CD9...3791B60DCF</span>  <span class="dim">&larr; Fritz</span>
+
+<span class="label">=== OUTPUT (shuffled + re-encrypted) ===</span>
+  <span class="dim">[0]</span> <span class="value">D7B8715E1D...07B4756A00</span>  <span class="dim">&larr; who? unknown</span>
+  <span class="dim">[1]</span> <span class="value">19EC21D022...03FA6B7A94</span>  <span class="dim">&larr; who? unknown</span>
+  <span class="dim">[2]</span> <span class="value">1FC53796E9...50AD1138C8</span>  <span class="dim">&larr; who? unknown</span>
+  <span class="dim">[3]</span> <span class="value">88B2E59D8B...AB2F8F9CB6</span>  <span class="dim">&larr; who? unknown</span>
+  <span class="dim">[4]</span> <span class="value">F27A76A4D6...7E83ED14F6</span>  <span class="dim">&larr; who? unknown</span>
+  <span class="dim">[5]</span> <span class="value">14F747B54D...A2C76D0315</span>  <span class="dim">&larr; who? unknown</span></div>
+    <div class="insight-box"><strong>Compare input [0] to any output.</strong> Every byte is different. The re-encryption changed every number. Under DDH, no efficient algorithm can determine which input corresponds to which output. Even CC0 itself can't -- it destroyed &pi;.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'CC0 Operator (Bern)',
+  roleClass: 'role-cc',
+  title: 'The Shuffle Proof (Bayer-Groth)',
+  html: `
+    <p>But wait -- how does anyone know CC0 didn't cheat? Maybe it replaced someone's vote, or duplicated a ballot. We need a <span class="em">proof that the shuffle was honest</span>.</p>
+    <div class="problem-box">The shuffle proof must convince a verifier of two things simultaneously:<br>
+    1. The output is a <strong>permutation</strong> of the input (same ballots, just reordered).<br>
+    2. Each ciphertext was <strong>re-encrypted</strong> (not modified).<br>
+    And it must do this <strong>without revealing the permutation</strong>.</div>
+    <p>This is the <span class="em">Bayer-Groth argument</span> (Eurocrypt 2012). It's the most complex proof in the system, so let's unpack its structure.</p>
+    <div class="math-block"><span class="def">Bayer-Groth argument structure for N=6 ciphertexts:</span>
+
+  <span class="cmt">Arrange N ciphertexts in an m&times;n matrix (here 2&times;3).</span>
+  <span class="cmt">The proof has 3 sub-arguments:</span>
+
+  <span class="sym">ShuffleArgument</span>
+  &boxvr;&boxh; <span class="grn">ProductArgument</span>
+  &boxv;   <span class="cmt">"The committed values form a valid permutation matrix."</span>
+  &boxv;   &boxvr;&boxh; <span class="blu">HadamardArgument</span>
+  &boxv;   &boxv;   <span class="cmt">"Component-wise products of committed vectors are correct."</span>
+  &boxv;   &boxv;   &boxur;&boxh; <span class="red">ZeroArgument</span>
+  &boxv;   &boxv;       <span class="cmt">"Polynomial evaluations via 'star-map' are zero."</span>
+  &boxv;   &boxur;&boxh; <span class="blu">SingleValueProductArgument</span>
+  &boxv;       <span class="cmt">"The product of all permuted indices equals the expected value."</span>
+  &boxur;&boxh; <span class="grn">MultiExponentiationArgument</span>
+      <span class="cmt">"The output ciphertexts are the correct multi-exponentiations</span>
+      <span class="cmt"> of the inputs with the permutation matrix as exponents."</span></div>
+    <div class="analogy-box"><strong>Simplified intuition:</strong> Imagine you have 6 sealed boxes numbered 1-6. You rearrange them and put them in new boxes. The ProductArgument proves "I used each number exactly once" (it's a valid permutation). The MultiExponentiationArgument proves "the new boxes contain the same items as the old boxes" (the ciphertexts were correctly re-encrypted, not swapped for fakes).</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  title: 'Understanding the Bayer-Groth Argument',
+  html: `
+    <p>Let's go one level deeper into <em>why</em> this proof works.</p>
+    <div class="math-block"><span class="def">The key idea: reducing permutation checking to polynomial identity testing.</span>
+
+  <span class="cmt">The prover commits to a permutation &pi; of {1,...,N}.</span>
+  <span class="cmt">The verifier sends a random challenge x.</span>
+  <span class="cmt">The prover must show:</span>
+
+    &prod;<sub>i=1</sub><sup>N</sup> (x - &pi;(i)) == &prod;<sub>i=1</sub><sup>N</sup> (x - i)
+
+  <span class="cmt">Both sides are the same polynomial (just reordered factors),</span>
+  <span class="cmt">so they evaluate to the same value at any x.</span>
+  <span class="cmt">By Schwartz-Zippel, if &pi; is NOT a permutation, equality fails</span>
+  <span class="cmt">with probability 1 - N/q (overwhelming for large q).</span></div>
+    <div class="math-block"><span class="def">The multi-exponentiation argument then links the permutation to the ciphertexts:</span>
+
+  <span class="cmt">Given committed permutation matrix A (with entries a<sub>ij</sub>),</span>
+  <span class="cmt">prove that output ciphertext C'<sub>k</sub> satisfies:</span>
+
+    C'<sub>k</sub> = &prod;<sub>i</sub> C<sub>i</sub><sup>a<sub>i,k</sub></sup> &middot; Enc(1, r'<sub>k</sub>)
+
+  <span class="cmt">This means: C'<sub>k</sub> is the re-encryption of the permuted input.</span>
+  <span class="cmt">The a<sub>i,k</sub> are the permutation matrix entries (0s and 1s),</span>
+  <span class="cmt">so this selects exactly one input ciphertext per output slot.</span></div>
+    <div class="insight-box"><strong>Complexity:</strong> The proof size is O(&radic;N) group elements, not O(N). For our 2&times;3 matrix, it's about 5 group elements and 5 field elements. For the production system with thousands of ballots, this sublinear scaling is critical. Verification takes O(N&radic;N) exponentiations -- efficient enough to run on any laptop.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  title: 'The Remaining Shuffles',
+  html: `
+    <p>CC0's output feeds into CC1, which shuffles again with its own random &pi;<sub>1</sub>. Then CC2, CC3, and finally the Electoral Board.</p>
+    <div class="decision-box">
+      <div class="decision-question">Process the remaining 4 shuffles?</div>
+      <div class="decision-answer role-cc">Process all</div>
+    </div>
+    <div class="crypto-block"><span class="color-cc">CC1 (Zurich):</span>  &pi;<sub>1</sub> &larr; S<sub>6</sub>, shuffle + re-encrypt + BG proof <span class="public">OK</span>, partial decrypt <span class="public">OK</span>  <span class="dim">(3 layers left)</span>
+<span class="color-cc">CC2 (Geneva):</span>  &pi;<sub>2</sub> &larr; S<sub>6</sub>, shuffle + re-encrypt + BG proof <span class="public">OK</span>, partial decrypt <span class="public">OK</span>  <span class="dim">(2 layers left)</span>
+<span class="color-cc">CC3 (Lugano):</span>  &pi;<sub>3</sub> &larr; S<sub>6</sub>, shuffle + re-encrypt + BG proof <span class="public">OK</span>, partial decrypt <span class="public">OK</span>  <span class="dim">(1 layer left)</span>
+<span class="color-eb">Electoral Board:</span>  &pi;<sub>4</sub> &larr; S<sub>6</sub>, shuffle + re-encrypt + BG proof <span class="public">OK</span>, final decrypt          <span class="dim">(0 layers left)</span></div>
+    <div class="think-box"><strong>Why 5 shuffles, not just 1?</strong> Privacy requires that <em>at least one</em> shuffle node is honest (destroys its &pi;). If CC0 is compromised, CC1 still shuffles honestly, and the combined permutation is random. After 5 independent shuffles, the final order is determined by the composition &pi;<sub>4</sub>&compfn;&pi;<sub>3</sub>&compfn;&pi;<sub>2</sub>&compfn;&pi;<sub>1</sub>&compfn;&pi;<sub>0</sub>. Even if 4 out of 5 collude and reveal their permutations, the honest one's &pi; makes the composition uniformly random. This is <em>information-theoretic</em> privacy -- no amount of computation helps.</div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  role: 'EB President',
+  roleClass: 'role-eb',
+  title: 'Opening the Ballot Box',
+  html: `
+    <p>After 5 shuffles and 5 partial decryptions, the ballots are fully decrypted -- in random order.</p>
+    <div class="decision-box">
+      <div class="decision-question">Open the ballot box?</div>
+      <div class="decision-answer role-eb">Open</div>
+    </div>
+    <div class="math-block"><span class="def">Sequential partial decryption (how the 5 layers are removed):</span>
+
+  <span class="cmt">Original ciphertext: (&gamma;, &phi;) = (g<sup>r</sup>, PK<sup>r</sup> &middot; m)</span>
+
+  <span class="cmt">CC0 computes:  d<sub>0</sub> = &gamma;<sup>sk<sub>0</sub></sup>,  divides &phi; by d<sub>0</sub></span>
+  <span class="cmt">CC1 computes:  d<sub>1</sub> = &gamma;<sup>sk<sub>1</sub></sup>,  divides &phi; by d<sub>1</sub></span>
+  <span class="cmt">CC2 computes:  d<sub>2</sub> = &gamma;<sup>sk<sub>2</sub></sup>,  divides &phi; by d<sub>2</sub></span>
+  <span class="cmt">CC3 computes:  d<sub>3</sub> = &gamma;<sup>sk<sub>3</sub></sup>,  divides &phi; by d<sub>3</sub></span>
+  <span class="cmt">EB  computes:  d<sub>4</sub> = &gamma;<sup>sk<sub>4</sub></sup>,  divides &phi; by d<sub>4</sub></span>
+
+  <span class="cmt">Result: &phi; / (d<sub>0</sub> &middot; d<sub>1</sub> &middot; d<sub>2</sub> &middot; d<sub>3</sub> &middot; d<sub>4</sub>)</span>
+  <span class="cmt">      = PK<sup>r</sup> &middot; m / &gamma;<sup>(sk<sub>0</sub>+...+sk<sub>4</sub>)</sup></span>
+  <span class="cmt">      = g<sup>sk&middot;r</sup> &middot; m / g<sup>r&middot;sk</sup></span>
+  <span class="cmt">      = <span class="grn">m</span></span></div>
+    <div class="crypto-block"><span class="label">=== THE BALLOT BOX IS OPEN ===</span>
+
+  <span class="dim">Slot 0:</span>  m = <span class="highlight">4</span>  = 2<sup>2</sup>  &rarr;  <span class="value">Alice</span>
+  <span class="dim">Slot 1:</span>  m = <span class="highlight">4</span>  = 2<sup>2</sup>  &rarr;  <span class="value">Alice</span>
+  <span class="dim">Slot 2:</span>  m = <span class="highlight">4</span>  = 2<sup>2</sup>  &rarr;  <span class="value">Alice</span>
+  <span class="dim">Slot 3:</span>  m = <span class="highlight">4</span>  = 2<sup>2</sup>  &rarr;  <span class="value">Alice</span>
+  <span class="dim">Slot 4:</span>  m = <span class="highlight">9</span>  = 3<sup>2</sup>  &rarr;  <span class="value">Bob</span>
+  <span class="dim">Slot 5:</span>  m = <span class="highlight">4</span>  = 2<sup>2</sup>  &rarr;  <span class="value">Alice</span>
+
+  <span class="dim">Random order. Nobody can tell which slot belongs to which voter.</span></div>
+  `
+},
+
+{
+  part: 'Part III: The Election',
+  title: 'Election Result',
+  html: `
+    <div class="result-box">
+      <div style="font-size:20px; font-weight:700; color:#e6edf3; margin-bottom:20px;">ELECTION RESULT</div>
+      <div style="text-align:left; display:inline-block;">
+        <div style="margin:8px 0; font-size:16px;">
+          <span class="value" style="display:inline-block; width:60px;">Alice</span>
+          <span class="em" style="display:inline-block; width:60px;">5 votes</span>
+          <span class="result-bar" style="width:250px; background:#56d364;"></span>
+        </div>
+        <div style="margin:8px 0; font-size:16px;">
+          <span class="value" style="display:inline-block; width:60px;">Bob</span>
+          <span class="em" style="display:inline-block; width:60px;">1 vote</span>
+          <span class="result-bar" style="width:50px; background:#60a0ff;"></span>
+        </div>
+      </div>
+      <div style="margin-top:20px; color:#56d364; font-weight:700; font-size:16px;">Alice is elected.</div>
+    </div>
+    <div class="think-box"><strong>But should we trust this result?</strong> The server computed it. The CCs computed it. Any of them could have cheated. The result <em>looks</em> right (5 Alice + 1 Bob = 6 ballots), but how do we <em>know</em>? This is where universal verifiability comes in -- and it's the most powerful part of the whole system.</div>
+  `
+},
+
+// ============================================================
+// PART IV: VERIFICATION
+// ============================================================
+{
+  part: 'Part IV: Verification',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part IV</div>
+      <h1>Verification</h1>
+      <div class="part-sub">Anyone can audit the election using only<br>public data and mathematics. No secrets needed.<br>No trust required.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part IV: Verification',
+  role: 'Public Auditor',
+  roleClass: 'role-auditor',
+  title: 'You Are a Public Auditor',
+  html: `
+    <p>You are a <span class="em color-auditor">random citizen</span>. You have:</p>
+    <ul>
+      <li>The public keys of all 5 key holders</li>
+      <li>All 6 encrypted ballots (input to the mix-net)</li>
+      <li>All shuffle outputs (from each CC)</li>
+      <li>All proofs (Schnorr proofs for keys, Bayer-Groth proofs for shuffles)</li>
+      <li>The decrypted result</li>
+    </ul>
+    <p>You do <span class="em">NOT</span> have any secret keys, passwords, or special access.</p>
+    <div class="insight-box"><strong>The claim:</strong> with just the public data above, you can independently verify that the election result is correct and that no cheating occurred. Let's do it step by step.</div>
+  `
+},
+
+{
+  part: 'Part IV: Verification',
+  role: 'Public Auditor',
+  roleClass: 'role-auditor',
+  title: 'Check 1: Key Proofs',
+  html: `
+    <p>First, verify that each key holder actually knows their secret key.</p>
+    <div class="math-block"><span class="def">For each CC<sub>j</sub>, you have the Schnorr proof (e<sub>j</sub>, z<sub>j</sub>) and public key pk<sub>j</sub>.</span>
+
+  <span class="cmt">Verification equation:</span>
+  c' = g<sup>z<sub>j</sub></sup> &middot; pk<sub>j</sub><sup>-e<sub>j</sub></sup> mod p      <span class="cmt">(recompute the commitment)</span>
+  check: H(p, q, g, pk<sub>j</sub>, c') == e<sub>j</sub>    <span class="cmt">(verify the Fiat-Shamir hash)</span>
+
+  CC0 (Bern):    <span class="grn">[PASS]</span>
+  CC1 (Zurich):  <span class="grn">[PASS]</span>
+  CC2 (Geneva):  <span class="grn">[PASS]</span>
+  CC3 (Lugano):  <span class="grn">[PASS]</span></div>
+    <div class="insight-box"><strong>What this guarantees:</strong> Each CC genuinely possesses the secret key corresponding to their published public key. They couldn't have picked a random pk and faked the proof -- by special soundness of Schnorr, faking requires solving DLog. This means the ElectionPK was correctly constructed from legitimate keys.</div>
+  `
+},
+
+{
+  part: 'Part IV: Verification',
+  role: 'Public Auditor',
+  roleClass: 'role-auditor',
+  title: 'Check 2: Shuffle Proofs',
+  html: `
+    <p>Now verify that each of the 5 shuffles was honest -- same ballots in, same ballots out, just reordered.</p>
+    <div class="crypto-block"><span class="label">Verifying 5 Bayer-Groth shuffle proofs:</span>
+
+  Shuffle 0 <span class="dim">(CC0, Bern)</span>       -- 6 ciphertexts, 2&times;3 matrix
+    <span class="proof-tree">ProductArgument ..............</span> <span class="proof-pass">PASS</span>
+      <span class="proof-tree">HadamardArgument ...........</span> <span class="proof-pass">PASS</span>
+        <span class="proof-tree">ZeroArgument .............</span> <span class="proof-pass">PASS</span>
+      <span class="proof-tree">SingleValueProduct .........</span> <span class="proof-pass">PASS</span>
+    <span class="proof-tree">MultiExponentiationArgument .</span> <span class="proof-pass">PASS</span>
+  ==&gt; <span class="proof-pass">VERIFIED</span> <span class="dim">(2ms)</span>
+
+  Shuffle 1 <span class="dim">(CC1, Zurich)</span>       ==&gt; <span class="proof-pass">VERIFIED</span> <span class="dim">(2ms)</span>
+  Shuffle 2 <span class="dim">(CC2, Geneva)</span>       ==&gt; <span class="proof-pass">VERIFIED</span> <span class="dim">(2ms)</span>
+  Shuffle 3 <span class="dim">(CC3, Lugano)</span>       ==&gt; <span class="proof-pass">VERIFIED</span> <span class="dim">(2ms)</span>
+  Shuffle 4 <span class="dim">(Electoral Board)</span>   ==&gt; <span class="proof-pass">VERIFIED</span> <span class="dim">(2ms)</span></div>
+    <div class="insight-box"><strong>What this guarantees:</strong> Each shuffle node's output is a valid permutation + re-encryption of its input. Combined with the ballot count check (6 in, 6 out at each step), this proves: <em>no ballots were added, removed, or modified anywhere in the pipeline</em>. Under the DLog assumption, producing a valid Bayer-Groth proof for a dishonest shuffle is computationally infeasible.</div>
+  `
+},
+
+{
+  part: 'Part IV: Verification',
+  role: 'Public Auditor',
+  roleClass: 'role-auditor',
+  title: 'Check 3: Ballot Count',
+  html: `
+    <div class="crypto-block"><span class="label">Ballot count verification:</span>
+
+  Ballots submitted:                  6
+  Ballots after CC0 shuffle:          6
+  Ballots after CC1 shuffle:          6
+  Ballots after CC2 shuffle:          6
+  Ballots after CC3 shuffle:          6
+  Ballots after EB shuffle:           6
+  Ballots decrypted:                  6
+
+  ==&gt; <span class="proof-pass">PASS: Every ballot is accounted for at every stage.</span></div>
+    <div class="insight-box"><strong>Combining the checks:</strong>
+    <br>Key proofs <span class="proof-pass">PASS</span> &rarr; the election key is legitimate
+    <br>Shuffle proofs <span class="proof-pass">PASS</span> &rarr; every shuffle was an honest permutation + re-encryption
+    <br>Ballot count <span class="proof-pass">PASS</span> &rarr; no ballots added or removed
+    <br><br>Together, these form a <em>chain of mathematical evidence</em> from encrypted ballots to the final tally. Every link is publicly verifiable. No trust required.</div>
+  `
+},
+
+// ============================================================
+// PART V: THE VERDICT
+// ============================================================
+{
+  part: 'Part V: Conclusion',
+  title: 'The Verdict',
+  html: `
+    <div class="verdict-box">
+      <div style="text-align:center; font-size:18px; font-weight:700; color:#56d364; margin-bottom:16px;">ALL VERIFICATIONS PASSED.</div>
+      <p>As a public auditor with <em>no special access</em>, you verified:</p>
+      <div style="margin:14px 0 14px 10px;">
+        <div style="margin:6px 0;"><span class="proof-pass">[x]</span> All 4 CCs proved knowledge of their secret keys (Schnorr &Sigma;-protocol + Fiat-Shamir)</div>
+        <div style="margin:6px 0;"><span class="proof-pass">[x]</span> All 5 shuffles are valid permutation + re-encryption (Bayer-Groth argument)</div>
+        <div style="margin:6px 0;"><span class="proof-pass">[x]</span> No ballots were added, removed, or modified (count invariant at each stage)</div>
+        <div style="margin:6px 0;"><span class="proof-pass">[x]</span> The final tally matches the decrypted ballots (prime factorization decoding)</div>
+      </div>
+    </div>
+    <div style="margin-top:20px; padding:20px; border:1px solid #21262d; border-radius:8px; background:#161b22;">
+      <div style="color:#8b949e; font-size:12px; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">Security properties achieved</div>
+      <div style="margin:10px 0;">
+        <span class="color-cc" style="font-weight:700;">Ballot secrecy:</span>
+        <span style="color:#c9d1d9; font-size:14px;"> ElGamal IND-CPA under DDH. Re-encryption mix-net with 5 nodes. Information-theoretic unlinkability if &ge;1 node is honest.</span>
+      </div>
+      <div style="margin:10px 0;">
+        <span class="color-voter" style="font-weight:700;">Individual verifiability:</span>
+        <span style="color:#c9d1d9; font-size:14px;"> Return codes from physical card, computed by 4 independent CCs. Cast-as-intended + recorded-as-cast.</span>
+      </div>
+      <div style="margin:10px 0;">
+        <span class="color-auditor" style="font-weight:700;">Universal verifiability:</span>
+        <span style="color:#c9d1d9; font-size:14px;"> Schnorr key proofs + Bayer-Groth shuffle proofs. Publicly verifiable by anyone. Sound under DLog.</span>
+      </div>
+    </div>
+  `
+},
+
+{
+  part: 'Part V: Conclusion',
+  title: 'What You Learned',
+  html: `
+    <div style="margin:10px 0;">
+      <h3 style="color:#d2a8ff;">The math we used:</h3>
+      <ul>
+        <li><span class="em">Safe prime groups</span> -- G<sub>q</sub> of prime order q for DDH security</li>
+        <li><span class="em">ElGamal encryption</span> -- IND-CPA, homomorphic re-encryption</li>
+        <li><span class="em">Schnorr &Sigma;-protocol</span> -- proof of knowledge for DLog, Fiat-Shamir transform</li>
+        <li><span class="em">Bayer-Groth shuffle argument</span> -- O(&radic;N) proof that a shuffle is honest</li>
+        <li><span class="em">Additive secret sharing</span> -- 5 key holders, no single one can decrypt</li>
+      </ul>
+    </div>
+    <div style="margin:20px 0;">
+      <h3 style="color:#56d364;">The design principles:</h3>
+      <ul>
+        <li><span class="em">Distribute trust</span> -- split the secret across independent parties</li>
+        <li><span class="em">Prove everything</span> -- every step produces a publicly verifiable proof</li>
+        <li><span class="em">Encrypt first, shuffle, then decrypt</span> -- break the link before revealing</li>
+        <li><span class="em">Physical out-of-band channel</span> -- paper cards for individual verifiability</li>
+      </ul>
+    </div>
+    <div style="margin-top:24px; padding:16px; border:1px solid #30363d; border-radius:8px; text-align:center;">
+      <p style="color:#8b949e; font-size:13px;">The production system: 14 repositories, 500,000+ lines, |p| = 3072 bits.</p>
+      <p style="color:#8b949e; font-size:13px; margin-top:6px;">This demo: one Go binary, |p| = 257 bits.</p>
+      <p style="color:#e6edf3; font-size:15px; font-weight:600; margin-top:12px;">Same algorithms. Same proof structure. Same math.</p>
+    </div>
+  `
+},
+
+{
+  part: 'Part V: Conclusion',
+  title: 'Further Reading',
+  html: `
+    <div style="font-size:14px; line-height:2.2;">
+      <h3 style="margin-bottom:12px;">Papers</h3>
+      <div><span class="dim">1.</span> Bayer, Groth. <span class="em">"Efficient Zero-Knowledge Argument for Correctness of a Shuffle."</span> Eurocrypt 2012.</div>
+      <div><span class="dim">2.</span> Schnorr. <span class="em">"Efficient Signature Generation by Smart Cards."</span> J. Cryptology, 1991.</div>
+      <div><span class="dim">3.</span> ElGamal. <span class="em">"A Public-Key Cryptosystem and a Signature Scheme Based on Discrete Logarithms."</span> IEEE Trans. IT, 1985.</div>
+      <div><span class="dim">4.</span> Fiat, Shamir. <span class="em">"How to Prove Yourself: Practical Solutions to Identification and Signature Problems."</span> Crypto 1986.</div>
+
+      <h3 style="margin-top:20px; margin-bottom:12px;">Swiss Post Documentation</h3>
+      <div><span class="dim">5.</span> Swiss Post. <span class="em">Crypto-primitives specification.</span> 2024.</div>
+      <div><span class="dim">6.</span> Swiss Post. <span class="em">Protocol specification: Mixing.</span> 2024.</div>
+      <div><span class="dim">7.</span> Swiss Post. <span class="em">System architecture document.</span> 2024.</div>
+
+      <h3 style="margin-top:20px; margin-bottom:12px;">Textbooks</h3>
+      <div><span class="dim">8.</span> Katz, Lindell. <span class="em">Introduction to Modern Cryptography.</span> Ch. 9 (DLog), Ch. 14 (ZK).</div>
+      <div><span class="dim">9.</span> Boneh, Shoup. <span class="em">A Graduate Course in Applied Cryptography.</span> Ch. 20 (ElGamal), Ch. 19 (Sigma).</div>
+    </div>
+    <div style="margin-top:30px; text-align:center; color:#484f58; font-size:13px;">
+      End of lecture.
+    </div>
+  `
+}
+
+];
+
+let currentSlide = 0;
+const stage = document.getElementById('stage');
+const progressBar = document.getElementById('progress-bar');
+const slideCounter = document.getElementById('slide-counter');
+const partLabel = document.getElementById('part-label');
+
+function render() {
+  const slide = SLIDES[currentSlide];
+  const total = SLIDES.length;
+
+  progressBar.style.width = ((currentSlide / (total - 1)) * 100) + '%';
+  slideCounter.textContent = (currentSlide + 1) + ' / ' + total;
+  partLabel.textContent = slide.part || '';
+
+  let html = '<div class="fade-in">';
+
+  if (slide.role) {
+    html += '<div class="role-banner ' + (slide.roleClass || 'role-none') + '">' + slide.role + '</div>';
+  }
+
+  if (slide.title) {
+    html += '<div class="slide-title">' + slide.title + '</div>';
+  }
+
+  html += '<div class="content">' + slide.html + '</div>';
+  html += '</div>';
+
+  stage.innerHTML = html;
+  stage.scrollTop = 0;
+}
+
+window.addEventListener('keydown', function(e) {
+  if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    e.stopPropagation();
+    if (currentSlide < SLIDES.length - 1) {
+      currentSlide++;
+      render();
+    }
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (currentSlide > 0) {
+      currentSlide--;
+      render();
+    }
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    currentSlide = 0;
+    render();
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    currentSlide = SLIDES.length - 1;
+    render();
+  }
+}, true);
+
+let touchStartX = 0;
+document.addEventListener('touchstart', function(e) {
+  touchStartX = e.changedTouches[0].screenX;
+});
+document.addEventListener('touchend', function(e) {
+  const diff = e.changedTouches[0].screenX - touchStartX;
+  if (Math.abs(diff) > 50) {
+    if (diff < 0 && currentSlide < SLIDES.length - 1) { currentSlide++; render(); }
+    else if (diff > 0 && currentSlide > 0) { currentSlide--; render(); }
+  } else {
+    if (currentSlide < SLIDES.length - 1) { currentSlide++; render(); }
+  }
+});
+
+render();
+</script>
+</body>
+</html>

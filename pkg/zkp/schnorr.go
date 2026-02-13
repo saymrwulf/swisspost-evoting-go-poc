@@ -1,0 +1,84 @@
+package zkp
+
+import (
+	"math/big"
+
+	"github.com/user/evote/pkg/hash"
+	emath "github.com/user/evote/pkg/math"
+)
+
+// GenSchnorrProof generates a Schnorr proof of knowledge of discrete log.
+// Proves knowledge of x such that y = g^x.
+func GenSchnorrProof(x emath.ZqElement, y emath.GqElement, group *emath.GqGroup, auxInfo ...hash.Hashable) SchnorrProof {
+	zqGroup := emath.ZqGroupFromGqGroup(group)
+	g := group.Generator()
+
+	// 1. Sample random b
+	b := emath.RandomZqElement(zqGroup)
+
+	// 2. Commitment: c = g^b
+	c := g.Exponentiate(b)
+
+	// 3. Build hash inputs
+	e := schnorrChallenge(group, y, c, zqGroup, auxInfo)
+
+	// 4. Response: z = b + e*x
+	z := b.Add(e.Multiply(x))
+
+	return SchnorrProof{E: e, Z: z}
+}
+
+// VerifySchnorrProof verifies a Schnorr proof.
+func VerifySchnorrProof(proof SchnorrProof, y emath.GqElement, group *emath.GqGroup, auxInfo ...hash.Hashable) bool {
+	zqGroup := emath.ZqGroupFromGqGroup(group)
+	g := group.Generator()
+
+	// Reconstruct commitment: c' = g^z * y^(-e)
+	gZ := g.Exponentiate(proof.Z)
+	yNegE := y.Exponentiate(proof.E.Negate())
+	cPrime := gZ.Multiply(yNegE)
+
+	// Recompute challenge
+	ePrime := schnorrChallenge(group, y, cPrime, zqGroup, auxInfo)
+
+	return proof.E.Equals(ePrime)
+}
+
+// schnorrChallenge computes the Fiat-Shamir challenge for Schnorr proofs.
+// Hash order: (p, q, g), y, c, h_aux
+func schnorrChallenge(group *emath.GqGroup, y emath.GqElement, c emath.GqElement, zqGroup *emath.ZqGroup, auxInfo []hash.Hashable) emath.ZqElement {
+	// f = (p, q, g)
+	f := hash.HashableList{Elements: []hash.Hashable{
+		hash.HashableBigInt{Value: group.P()},
+		hash.HashableBigInt{Value: group.Q()},
+		hash.HashableBigInt{Value: group.Generator().Value()},
+	}}
+
+	// h_aux
+	hAux := buildAuxHash("SchnorrProof", auxInfo)
+
+	// Hash: recursiveHash(f, y, c, h_aux)
+	hashBytes := hash.RecursiveHash(
+		f,
+		hash.HashableBigInt{Value: y.Value()},
+		hash.HashableBigInt{Value: c.Value()},
+		hAux,
+	)
+
+	// Convert to Z_q element
+	eVal := new(big.Int).SetBytes(hashBytes)
+	eVal.Mod(eVal, zqGroup.Q())
+	e, _ := emath.NewZqElement(eVal, zqGroup)
+	return e
+}
+
+// buildAuxHash builds the auxiliary hash list.
+// If auxInfo is empty: ["label"]
+// Otherwise: ["label", auxInfo...]
+func buildAuxHash(label string, auxInfo []hash.Hashable) hash.Hashable {
+	elements := []hash.Hashable{hash.HashableString{Value: label}}
+	if len(auxInfo) > 0 {
+		elements = append(elements, auxInfo...)
+	}
+	return hash.HashableList{Elements: elements}
+}
