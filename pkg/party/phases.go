@@ -16,11 +16,21 @@ func (p *SetupComponent) handleSetupMsg(env *transport.Envelope) (*transport.Env
 }
 
 func (p *ControlComponent) handleCCMsg(env *transport.Envelope) (*transport.Envelope, error) {
-	return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
+	switch env.Type {
+	case MsgGenCCKeys:
+		return p.handleGenCCKeys(env)
+	default:
+		return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
+	}
 }
 
 func (p *ElectoralBoard) handleEBMsg(env *transport.Envelope) (*transport.Envelope, error) {
-	return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
+	switch env.Type {
+	case MsgGenEBKey:
+		return p.handleGenEBKey(env)
+	default:
+		return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
+	}
 }
 
 func (p *VotingServer) handleServerMsg(env *transport.Envelope) (*transport.Envelope, error) {
