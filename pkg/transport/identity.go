@@ -64,16 +64,17 @@ func (id *Identity) SigningSeed() []byte { return id.edSeed }
 func (id *Identity) ECDHPrivate() []byte { return id.xPriv }
 
 // CA is a minimal root certificate authority that issues Ed25519 identity
-// certificates. Its own signing key is Rust-backed.
+// certificates. Its own signing key is Rust-backed. It owns a serial counter so
+// certificate serials are deterministic (crypto/rand serials would make runs
+// non-reproducible; a counter suffices for a single-CA PoC).
 type CA struct {
 	signer  rustSigner
 	Cert    *x509.Certificate
 	CertDER []byte
+	serials serialCounter
 }
 
 // serialCounter deterministically supplies certificate serial numbers.
-// (crypto/rand-based serials would make runs non-reproducible; a counter is
-// sufficient for a single-CA PoC and keeps ceremonies deterministic.)
 type serialCounter struct{ n int64 }
 
 func (c *serialCounter) next() *big.Int { c.n++; return big.NewInt(c.n) }
@@ -86,15 +87,16 @@ var (
 )
 
 // NewCA creates a self-signed Ed25519 root CA named name.
-func NewCA(name string, serials *serialCounter) (*CA, error) {
+func NewCA(name string) (*CA, error) {
 	seed, pub, err := transportsec.Ed25519GenerateKey()
 	if err != nil {
 		return nil, fmt.Errorf("CA keygen: %w", err)
 	}
 	signer := rustSigner{seed: seed, pub: ed25519.PublicKey(pub)}
+	ca := &CA{signer: signer}
 
 	tmpl := &x509.Certificate{
-		SerialNumber:          serials.next(),
+		SerialNumber:          ca.serials.next(),
 		Subject:               pkix.Name{CommonName: name},
 		NotBefore:             fixedNotBefore,
 		NotAfter:              fixedNotAfter,
@@ -112,11 +114,13 @@ func NewCA(name string, serials *serialCounter) (*CA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("CA parse: %w", err)
 	}
-	return &CA{signer: signer, Cert: cert, CertDER: der}, nil
+	ca.Cert = cert
+	ca.CertDER = der
+	return ca, nil
 }
 
 // Issue creates an Identity for a party, with an Ed25519 cert signed by the CA.
-func (ca *CA) Issue(name string, serials *serialCounter) (*Identity, error) {
+func (ca *CA) Issue(name string) (*Identity, error) {
 	edSeed, edPub, err := transportsec.Ed25519GenerateKey()
 	if err != nil {
 		return nil, fmt.Errorf("%s ed keygen: %w", name, err)
@@ -127,7 +131,7 @@ func (ca *CA) Issue(name string, serials *serialCounter) (*Identity, error) {
 	}
 
 	tmpl := &x509.Certificate{
-		SerialNumber: serials.next(),
+		SerialNumber: ca.serials.next(),
 		Subject:      pkix.Name{CommonName: name},
 		NotBefore:    fixedNotBefore,
 		NotAfter:     fixedNotAfter,

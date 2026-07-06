@@ -7,15 +7,14 @@ import (
 
 func newTestPKI(t *testing.T, names ...string) (*CA, *Directory, map[string]*Identity) {
 	t.Helper()
-	serials := &serialCounter{}
-	ca, err := NewCA("evote-root-ca", serials)
+	ca, err := NewCA("evote-root-ca")
 	if err != nil {
 		t.Fatalf("NewCA: %v", err)
 	}
 	dir := NewDirectory(ca)
 	ids := make(map[string]*Identity)
 	for _, n := range names {
-		id, err := ca.Issue(n, serials)
+		id, err := ca.Issue(n)
 		if err != nil {
 			t.Fatalf("issue %s: %v", n, err)
 		}
@@ -33,9 +32,8 @@ func TestCertificateChainVerifies(t *testing.T) {
 		t.Fatalf("issued cert should verify: %v", err)
 	}
 	// A cert from a different CA must not verify against this one.
-	serials := &serialCounter{}
-	other, _ := NewCA("evil-ca", serials)
-	forged, _ := other.Issue("cc0", serials)
+	other, _ := NewCA("evil-ca")
+	forged, _ := other.Issue("cc0")
 	if err := ca.VerifyCertificate(forged.Cert); err == nil {
 		t.Fatal("cert from foreign CA must not verify")
 	}
