@@ -7,123 +7,160 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0d1117;
-    color: #c9d1d9;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
-    font-size: 15px;
+    background: #ffffff;
+    color: #24292f;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
     line-height: 1.7;
     overflow: hidden;
     height: 100vh;
   }
-  #progress-bar { position:fixed;top:0;left:0;height:3px;background:#58a6ff;transition:width .4s ease;z-index:100; }
-  #slide-counter { position:fixed;top:10px;right:20px;font-size:12px;color:#484f58;z-index:100; }
-  #part-label { position:fixed;top:10px;left:20px;font-size:11px;color:#484f58;z-index:100;letter-spacing:1px;text-transform:uppercase; }
-  #nav-hint { position:fixed;bottom:15px;right:20px;font-size:11px;color:#30363d;z-index:100; }
+  #progress-bar { position:fixed;top:0;left:0;height:3px;background:#0969da;transition:width .4s ease;z-index:100; }
+  #slide-counter { position:fixed;top:10px;right:20px;font-size:12px;color:#8b949e;z-index:100; }
+  #part-label { position:fixed;top:10px;left:20px;font-size:11px;color:#8b949e;z-index:100;letter-spacing:1px;text-transform:uppercase; }
   #stage {
-    max-width: 900px; margin: 0 auto; padding: 40px 30px 60px;
+    max-width: 900px; margin: 0 auto; padding: 40px 30px 80px;
     height: 100vh; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: #21262d #0d1117;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: #d8dee4 #ffffff;
   }
   #stage::-webkit-scrollbar { width: 6px; }
-  #stage::-webkit-scrollbar-track { background: #0d1117; }
-  #stage::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+  #stage::-webkit-scrollbar-track { background: #ffffff; }
+  #stage::-webkit-scrollbar-thumb { background: #d8dee4; border-radius: 3px; }
 
-  .slide-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; color: #e6edf3; }
+  .slide-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; color: #1f2328; }
   .part-card { text-align: center; padding-top: 16vh; }
-  .part-card .part-num { font-size:14px;color:#484f58;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px; }
-  .part-card h1 { font-size:30px;color:#e6edf3;margin-bottom:16px;font-weight:800; }
-  .part-card .part-sub { font-size:15px;color:#8b949e;max-width:620px;margin:0 auto;line-height:1.8; }
+  .part-card .part-num { font-size:14px;color:#8b949e;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px; }
+  .part-card h1 { font-size:30px;color:#1f2328;margin-bottom:16px;font-weight:800; }
+  .part-card .part-sub { font-size:15px;color:#57606a;max-width:620px;margin:0 auto;line-height:1.8; }
 
   .title-card { text-align: center; padding-top: 10vh; }
-  .title-card h1 { font-size:30px;color:#e6edf3;margin-bottom:10px;font-weight:800; }
-  .title-card .subtitle { font-size:15px;color:#8b949e; }
-  .title-card .start-hint { color:#484f58;font-size:13px;margin-top:40px;animation:pulse 2s ease-in-out infinite; }
+  .title-card h1 { font-size:30px;color:#1f2328;margin-bottom:10px;font-weight:800; }
+  .title-card .subtitle { font-size:15px;color:#57606a; }
+  .title-card .start-hint { color:#8b949e;font-size:13px;margin-top:40px;animation:pulse 2s ease-in-out infinite; }
   @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
 
   /* Code blocks with syntax highlighting */
   .code {
-    background: #161b22; border: 1px solid #21262d; border-radius: 6px;
+    background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px;
     padding: 14px 18px; margin: 12px 0; font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
     overflow-x: auto; white-space: pre; line-height: 1.5;
   }
-  .code .kw { color: #ff7b72; }          /* keywords */
-  .code .fn { color: #d2a8ff; }          /* function names */
-  .code .tp { color: #79c0ff; }          /* types */
-  .code .str { color: #a5d6ff; }         /* strings */
-  .code .cmt { color: #6e7681; }         /* comments */
-  .code .num { color: #79c0ff; }         /* numbers */
-  .code .pkg { color: #ffa657; }         /* package/import names */
-  .code .op { color: #ff7b72; }          /* operators */
+  .code .kw { color: #cf222e; }          /* keywords */
+  .code .fn { color: #8250df; }          /* function names */
+  .code .tp { color: #0550ae; }          /* types */
+  .code .str { color: #0a3069; }         /* strings */
+  .code .cmt { color: #8b949e; }         /* comments */
+  .code .num { color: #0550ae; }         /* numbers */
+  .code .pkg { color: #c2410c; }         /* package/import names */
+  .code .op { color: #cf222e; }          /* operators */
 
   /* Pedagogical boxes */
   .lesson-box {
-    background: #1a1a0d; border-left: 3px solid #f0c040;
+    background: #fffbeb; border-left: 3px solid #d4a72c;
     padding: 12px 16px; margin: 16px 0; font-size: 14px;
-    color: #e6d8a8; line-height: 1.7;
+    color: #713f12; line-height: 1.7;
   }
-  .lesson-box::before { content:'Lesson'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#f0c040; margin-bottom:6px; font-weight:700; }
+  .lesson-box::before { content:'Lesson'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#b45309; margin-bottom:6px; font-weight:700; }
 
   .insight-box {
-    background: #0d1926; border-left: 3px solid #58a6ff;
+    background: #eff6ff; border-left: 3px solid #218bff;
     padding: 12px 16px; margin: 16px 0; font-size: 14px;
-    color: #a8c8e6; line-height: 1.7;
+    color: #1e3a5f; line-height: 1.7;
   }
-  .insight-box::before { content:'Key insight'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#58a6ff; margin-bottom:6px; font-weight:700; }
+  .insight-box::before { content:'Key insight'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#0969da; margin-bottom:6px; font-weight:700; }
 
   .mistake-box {
-    background: #1a0d0d; border-left: 3px solid #f85149;
+    background: #fef2f2; border-left: 3px solid #f87171;
     padding: 12px 16px; margin: 16px 0; font-size: 14px;
-    color: #e6a8a8; line-height: 1.7;
+    color: #7f1d1d; line-height: 1.7;
   }
-  .mistake-box::before { content:'Common mistake'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#f85149; margin-bottom:6px; font-weight:700; }
+  .mistake-box::before { content:'Common mistake'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#dc2626; margin-bottom:6px; font-weight:700; }
 
   .analogy-box {
-    background: #0d1a14; border-left: 3px solid #56d364;
+    background: #f0fdf4; border-left: 3px solid #4ade80;
     padding: 12px 16px; margin: 16px 0; font-size: 14px;
-    color: #a8e6c8; line-height: 1.7;
+    color: #14532d; line-height: 1.7;
   }
-  .analogy-box::before { content:'Real-world parallel'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#56d364; margin-bottom:6px; font-weight:700; }
+  .analogy-box::before { content:'Real-world parallel'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#16a34a; margin-bottom:6px; font-weight:700; }
 
   .think-box {
-    background: #1a1520; border-left: 3px solid #d2a8ff;
+    background: #faf5ff; border-left: 3px solid #a855f7;
     padding: 12px 16px; margin: 16px 0; font-size: 14px;
-    color: #d8c8e6; line-height: 1.7;
+    color: #581c87; line-height: 1.7;
   }
-  .think-box::before { content:'Think about it'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#d2a8ff; margin-bottom:6px; font-weight:700; }
+  .think-box::before { content:'Think about it'; display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:#7c3aed; margin-bottom:6px; font-weight:700; }
 
   /* Stats boxes */
   .stat-grid {
     display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0;
   }
   .stat-box {
-    flex: 1; min-width: 130px; background: #161b22;
-    border: 1px solid #21262d; border-radius: 8px;
+    flex: 1; min-width: 130px; background: #f6f8fa;
+    border: 1px solid #d8dee4; border-radius: 8px;
     padding: 14px; text-align: center;
   }
-  .stat-box .stat-num { font-size: 28px; font-weight: 800; color: #58a6ff; }
-  .stat-box .stat-label { font-size: 11px; color: #8b949e; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-box .stat-num { font-size: 28px; font-weight: 800; color: #0969da; }
+  .stat-box .stat-label { font-size: 11px; color: #57606a; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
 
   /* Tree diagrams */
-  .tree { background:#161b22; border:1px solid #21262d; border-radius:6px; padding:14px 18px; margin:12px 0; font-size:13px; white-space:pre; line-height:1.5; overflow-x:auto; }
-  .tree .dir { color: #79c0ff; font-weight: 600; }
-  .tree .file { color: #c9d1d9; }
-  .tree .dim { color: #484f58; }
-  .tree .hl { color: #ffa657; }
+  .tree { background:#f6f8fa; border:1px solid #d8dee4; border-radius:6px; padding:14px 18px; margin:12px 0; font-size:13px; font-family:'SF Mono','Fira Code',Menlo,Consolas,monospace; white-space:pre; line-height:1.5; overflow-x:auto; }
+  .tree .dir { color: #0550ae; font-weight: 600; }
+  .tree .file { color: #24292f; }
+  .tree .dim { color: #8b949e; }
+  .tree .hl { color: #c2410c; }
 
-  .em { color: #e6edf3; font-weight: 600; }
-  .dim { color: #484f58; }
-  .note { color: #8b949e; font-size: 13px; font-style: italic; }
-  h3 { color: #e6edf3; font-size: 16px; margin: 18px 0 8px; }
+  .em { color: #1f2328; font-weight: 600; }
+  .dim { color: #8b949e; }
+  .note { color: #57606a; font-size: 13px; font-style: italic; }
+  h3 { color: #1f2328; font-size: 16px; margin: 18px 0 8px; }
   p { margin-bottom: 10px; }
   ul, ol { margin: 8px 0 8px 20px; }
   li { margin-bottom: 4px; }
+  #home-btn {
+    position: fixed; top: 10px; left: 20px;
+    background: none; border: 1px solid #d0d7de; color: #57606a;
+    padding: 3px 10px; border-radius: 4px; font-family: inherit;
+    font-size: 11px; cursor: pointer; z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #home-btn:hover { border-color: #0969da; color: #0969da; }
+  .manual-cta { text-align: center; margin-top: 30px; padding: 20px; }
+  .manual-cta button {
+    background: #0969da; color: #fff; border: none;
+    padding: 12px 24px; border-radius: 8px; font-family: inherit;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .manual-cta button:hover { background: #0860c7; }
   .fade-in { animation: fadeIn .3s ease-in; }
   @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
   .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:700; letter-spacing:.5px; }
-  .badge-go { background:#00ADD8; color:#fff; }
-  .badge-lines { background:#238636; color:#fff; }
-  .badge-deps { background:#8957e5; color:#fff; }
+  .badge-go { background:#0969da; color:#fff; }
+  .badge-lines { background:#1a7f37; color:#fff; }
+  .badge-deps { background:#8250df; color:#fff; }
+
+  #nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 20px env(safe-area-inset-bottom);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid #d8dee4;
+    z-index: 100; gap: 24px;
+  }
+  #nav-bar button {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid #d0d7de; background: #fff; color: #24292f;
+    font-size: 20px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #nav-bar button:active { background: #f6f8fa; }
+  #nav-bar button:disabled { opacity: 0.25; }
+  #nav-counter { font-size: 13px; color: #8b949e; min-width: 70px; text-align: center; font-family: -apple-system, sans-serif; }
 </style>
 </head>
 <body>
@@ -131,8 +168,13 @@
 <div id="progress-bar"></div>
 <div id="slide-counter"></div>
 <div id="part-label"></div>
-<div id="nav-hint">Space / Enter / Arrow keys</div>
+<button id="home-btn" onclick="window.parent.postMessage({type:'home'},'*')">&#8592; Home</button>
 <div id="stage"></div>
+<div id="nav-bar">
+  <button id="nav-prev" onclick="goPrev()" aria-label="Previous">&#8592;</button>
+  <div id="nav-counter"></div>
+  <button id="nav-next" onclick="goNext()" aria-label="Next">&#8594;</button>
+</div>
 
 <script>
 const S = [
@@ -146,11 +188,11 @@ const S = [
     <div class="title-card">
       <div style="font-size:50px; margin-bottom:24px;">&#x1F3D7;&#xFE0F;</div>
       <h1>Building a Government Election System</h1>
-      <h1 style="font-size:22px; color:#00ADD8;">in 6,500 Lines of Go</h1>
+      <h1 style="font-size:22px; color:#0969da;">in 6,500 Lines of Go</h1>
       <div class="subtitle" style="margin-top:16px;">
         A software engineering lecture
       </div>
-      <div style="color:#484f58; font-size:13px; margin-top:24px; line-height:1.8;">
+      <div style="color:#8b949e; font-size:13px; margin-top:24px; line-height:1.8;">
         Not about cryptography. About how to structure,<br>
         design, and build real software that works.
       </div>
@@ -217,7 +259,7 @@ const S = [
   html: `
     <p>This could have been written in Rust, Python, or C. Here's why Go was the right choice for <em>this</em> project:</p>
     <div style="margin:12px 0;">
-      <h3 style="color:#00ADD8;">Fits like a glove</h3>
+      <h3 style="color:#0969da;">Fits like a glove</h3>
       <ul>
         <li><span class="em">math/big</span> -- arbitrary-precision integers in the standard library (no external bignum dependency)</li>
         <li><span class="em">crypto/rand</span> -- cryptographically secure random bytes, built in</li>
@@ -227,7 +269,7 @@ const S = [
       </ul>
     </div>
     <div style="margin:12px 0;">
-      <h3 style="color:#f85149;">Wouldn't choose Go for</h3>
+      <h3 style="color:#cf222e;">Wouldn't choose Go for</h3>
       <ul>
         <li>High-performance production crypto (Rust or C would be faster for 3072-bit operations)</li>
         <li>Generic math libraries (Go generics are still young)</li>
@@ -315,8 +357,8 @@ const S = [
     github.com/spf13/cobra  v1.10.2   <span class="cmt">// CLI framework</span>
     golang.org/x/crypto     v0.47.0   <span class="cmt">// SHA3, Argon2id</span>
 )</div>
-    <p>That's the entire dependency list. Everything else -- ElGamal encryption, zero-knowledge proofs, the Bayer-Groth shuffle argument, Pedersen commitments -- is implemented from scratch.</p>
-    <div class="lesson-box"><strong>Minimize your dependencies.</strong> Every dependency is a liability: it can break, go unmaintained, introduce vulnerabilities, or change its API. For a cryptographic system, building from primitives also means you <em>understand</em> every line. You're not trusting a black box.<br><br>This doesn't mean "never use libraries." It means: use libraries for things that aren't your core domain (CLI parsing, hash algorithms), and own the code for things that <em>are</em> your core domain (the election protocol).</div>
+    <p>That's the entire Go dependency list. The protocol crypto -- ElGamal, zero-knowledge proofs, the Bayer-Groth shuffle, Pedersen commitments -- is implemented from scratch. The one deliberate exception is <em>transport</em> security: the multi-party mode links a small Rust crate (<code>ed25519-dalek</code>, <code>x25519-dalek</code>) for signatures and key exchange.</p>
+    <div class="lesson-box"><strong>Own your core domain; borrow the rest.</strong> The election protocol is the core domain, so it's built from primitives -- you understand every line. But hand-rolling Ed25519 or X25519 would be reckless: constant-time, audited implementations are exactly what you <em>should</em> depend on. Knowing which is which is the skill.</div>
   `
 },
 
@@ -595,12 +637,12 @@ result := element.<span class="fn">Exponentiate</span>(otherElement)  <span clas
     <p>Compare the ElGamal encryption <em>specification</em> to the <em>code</em>:</p>
     <div style="display:flex; gap:16px; margin:12px 0;">
       <div style="flex:1;">
-        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Specification</div>
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Specification</div>
         <div class="code" style="font-size:12px;"><span class="cmt">gamma = g^r
 phi_i = pk_i^r * m_i</span></div>
       </div>
       <div style="flex:1;">
-        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Code</div>
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Code</div>
         <div class="code" style="font-size:12px;">gamma := g.<span class="fn">Exponentiate</span>(r)
 
 pkR := pk.<span class="fn">Get</span>(i).<span class="fn">Exponentiate</span>(r)
@@ -610,14 +652,14 @@ phis[i] = pkR.<span class="fn">Multiply</span>(msg.<span class="fn">Get</span>(i
     <p>And the Schnorr proof:</p>
     <div style="display:flex; gap:16px; margin:12px 0;">
       <div style="flex:1;">
-        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Specification</div>
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Specification</div>
         <div class="code" style="font-size:12px;"><span class="cmt">b <- Z_q
 c = g^b
 e = H(g, pk, c)
 z = b + e*x</span></div>
       </div>
       <div style="flex:1;">
-        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Code</div>
+        <div style="color:#57606a; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Code</div>
         <div class="code" style="font-size:12px;">b := emath.<span class="fn">RandomZqElement</span>(zqGroup)
 c := g.<span class="fn">Exponentiate</span>(b)
 e := <span class="fn">schnorrChallenge</span>(group, y, c, ...)
@@ -670,7 +712,7 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
   title: 'Three Strategies, Three Contexts',
   html: `
     <div style="margin:8px 0;">
-      <h3 style="color:#56d364;">1. Return error -- for external input</h3>
+      <h3 style="color:#1a7f37;">1. Return error -- for external input</h3>
       <div class="code"><span class="kw">func</span> <span class="fn">NewGqElement</span>(value *<span class="tp">big.Int</span>, group *<span class="tp">GqGroup</span>) (<span class="tp">GqElement</span>, <span class="kw">error</span>) {
     <span class="kw">if</span> !group.<span class="fn">IsGroupMember</span>(value) {
         <span class="kw">return</span> <span class="tp">GqElement</span>{}, fmt.<span class="fn">Errorf</span>(<span class="str">"value is not a group member"</span>)
@@ -680,7 +722,7 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
       <p class="note">Used when the caller provided data that might be invalid. Let them handle it.</p>
     </div>
     <div style="margin:16px 0;">
-      <h3 style="color:#f85149;">2. Panic -- for programming errors</h3>
+      <h3 style="color:#cf222e;">2. Panic -- for programming errors</h3>
       <div class="code"><span class="kw">func</span> (e <span class="tp">GqElement</span>) <span class="fn">Multiply</span>(other <span class="tp">GqElement</span>) <span class="tp">GqElement</span> {
     e.<span class="fn">checkSameGroup</span>(other)  <span class="cmt">// panics if groups don't match</span>
     <span class="cmt">// ...</span>
@@ -693,7 +735,7 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
       <p class="note">Used when the invariant is the caller's responsibility. This is a bug, not a data problem.</p>
     </div>
     <div style="margin:16px 0;">
-      <h3 style="color:#ffa657;">3. Panic with message -- for "should never happen" in PoC</h3>
+      <h3 style="color:#c2410c;">3. Panic with message -- for "should never happen" in PoC</h3>
       <div class="code">group, err := emath.<span class="fn">NewGqGroup</span>(p, q, g)
 <span class="kw">if</span> err != <span class="kw">nil</span> {
     <span class="kw">panic</span>(<span class="str">"failed to create group: "</span> + err.<span class="fn">Error</span>())
@@ -708,10 +750,10 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
   title: 'The PoC vs. Production Tradeoff',
   html: `
     <div class="think-box"><strong>Should this PoC have better error handling?</strong><br><br>
-    No. And here's why.<br><br>
-    This code runs a single-threaded, in-memory election ceremony. There's no network, no disk I/O, no user input after the flags are parsed. If something goes wrong, it's because the <em>math is wrong</em> -- and the correct response is to crash with a stack trace, not to gracefully return an error that nobody knows how to handle.<br><br>
-    In production? Absolutely add proper error handling. There are network calls, database transactions, concurrent operations, and partial failures. But for a PoC, <strong>clarity wins over defensive programming</strong>.</div>
-    <div class="lesson-box"><strong>Match your error strategy to your context.</strong> A PoC, a library, a web server, and an embedded system all need different error handling approaches. Don't cargo-cult <code>if err != nil { return err }</code> on every line if you're writing throwaway code. And don't <code>panic</code> in a library that other people import. Context matters.</div>
+    It depends which mode you're in.<br><br>
+    The single-process <code>demo</code> runs an in-memory ceremony with no untrusted input after the flags are parsed. If something goes wrong there, it's because the <em>math is wrong</em> -- crashing with a stack trace is the right response.<br><br>
+    But the multi-party <code>netdemo</code> (Part VI&frac12;) crosses a real trust boundary: parties exchange signed messages, and a malformed message from a peer must produce a clean rejection, not a panic. So the transport-facing code returns errors and validates every decoded value -- the same code, held to a stricter standard <em>because its inputs are no longer trusted</em>.</div>
+    <div class="lesson-box"><strong>Match your error strategy to your context.</strong> Panic on impossible internal states in throwaway code; return errors at trust boundaries where inputs are attacker-controlled. The <em>same</em> project can need both -- what changes is whether the input is trusted.</div>
   `
 },
 
@@ -809,6 +851,74 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
 },
 
 // ============================================================
+// PART VI½: THE MULTI-PARTY RE-ARCHITECTURE
+// ============================================================
+{
+  part: 'Part VI½: Going Multi-Party',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part VI&frac12;</div>
+      <h1>From One Process to Many Parties</h1>
+      <div class="part-sub">The real system isn't one program.<br>It's ten mutually distrusting parties on separate machines.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'The Trust Structure Was Missing',
+  html: `
+    <p>The single-process <code>demo</code> is faithful to the <em>protocol</em> but not to the <em>trust model</em>. Every party -- the setup component, four control components, the electoral board, the voting server, the voters, the verifier -- lived as fields on one shared struct. Anyone could read anyone's secret key.</p>
+    <p>The <code>netdemo</code> mode splits them into separate endpoints (<code>pkg/party</code>). Each holds only its own private state; everything that crosses between parties travels as an authenticated message over a bus (<code>pkg/transport</code>).</p>
+    <div class="insight-box">A protocol demo can collapse all parties into one process. A <em>trust</em> demo can't -- the whole point is that no single party sees the whole picture. Splitting them turns "trust us" into "verify every message."</div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'Transport Security -- in Rust',
+  html: `
+    <p>Every inter-party message is Ed25519-signed; confidential deliveries (voting cards) use X25519 ECDH + AES-GCM. Crucially, <strong>that cryptography is implemented in Rust</strong>, not Go, and called over a C ABI via cgo:</p>
+    <div class="code"><span class="cmt">// rust/transportsec (ed25519-dalek, x25519-dalek) -> C ABI -> Go</span>
+<span class="cmt">// pkg/transportsec/transportsec.go</span>
+<span class="kw">func</span> <span class="fn">Ed25519Sign</span>(seed, msg []<span class="tp">byte</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>)   <span class="cmt">// calls Rust</span>
+<span class="kw">func</span> <span class="fn">X25519SharedSecret</span>(priv, peerPub []<span class="tp">byte</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>)</div>
+    <p>No RSA anywhere -- including the X.509 certificate authority, whose Ed25519 signatures are produced through a Go <code>crypto.Signer</code> shim that forwards to Rust. A cross-language test proves the Rust signatures are standard RFC 8032 (Go's stdlib verifies them and vice-versa).</p>
+    <div class="lesson-box"><strong>Language boundaries are an architecture tool.</strong> Isolating all the signature/key-exchange code in one small Rust crate with a five-function C ABI means the security-critical primitives live in one memory-safe, audited place -- and the Go side literally cannot re-implement or bypass them.</div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'The Validation Boundary',
+  html: `
+    <p>Once messages arrive from other parties, they're untrusted. The single serialization layer (<code>pkg/party/wire.go</code>) is the choke point: crypto objects travel as decimal strings and every decode routes through the checked constructors.</p>
+    <div class="code"><span class="kw">func</span> <span class="fn">strToGq</span>(s <span class="tp">string</span>, group *<span class="tp">emath.GqGroup</span>) (<span class="tp">emath.GqElement</span>, <span class="tp">error</span>) {
+    v, ok := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">SetString</span>(s, <span class="num">10</span>)
+    <span class="kw">if</span> !ok { <span class="kw">return</span> ..., <span class="fn">err</span> }
+    <span class="kw">return</span> emath.<span class="fn">NewGqElement</span>(v, group)  <span class="cmt">// validates membership in G_q</span>
+}</div>
+    <p>A peer cannot inject a value outside the group -- the small-subgroup and non-residue attacks are closed at the exact point where a proof or ciphertext crosses the boundary.</p>
+    <div class="insight-box">In a monolith, "is this a valid group element?" is an invariant you establish once. Across a trust boundary, it's a question you must re-ask on every single decode. The architecture makes that unavoidable by funneling all decoding through one validated layer.</div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'Cast-as-Intended, For Real',
+  html: `
+    <p>The return codes a voter checks against their card are now computed by the control components <em>from the submitted ciphertext</em> -- not looked up. The voter sends a second ciphertext E2 and a <strong>plaintext-equality proof</strong> that E2 and the ballot encrypt the same vote.</p>
+    <div class="tree"><span class="dir">voter</span>   --&gt; ballot E1 + E2 + equality proof --&gt; <span class="hl">server</span>
+<span class="hl">server</span>  --&gt; verify proof on every CC, then:
+        exponentiate E2 by each CC's return-code key,
+        joint-decrypt --&gt; vote^&Sigma;k --&gt; look up short code
+<span class="dir">voter</span>   &lt;-- return code --  check against card</div>
+    <p>If malware encrypts option A for the tally but option B in the return-code channel, the equality proof fails and the ballot is rejected. A unit test drives exactly that attack and confirms it's caught.</p>
+    <div class="lesson-box"><strong>Soundness is a property of the whole pipeline, not one function.</strong> The proof, the CC computation, the mapping lookup, and the voter's check only add up to "cast-as-intended" when every link holds -- which is why it needs a test that attacks the seam between them.</div>
+  `
+},
+
+// ============================================================
 // PART VII: THE CLI AS A PRODUCT
 // ============================================================
 {
@@ -878,7 +988,7 @@ Available Commands:
   title: 'What Makes This a Good PoC',
   html: `
     <div style="margin:12px 0;">
-      <h3 style="color:#56d364;">What it does well</h3>
+      <h3 style="color:#1a7f37;">What it does well</h3>
       <ul>
         <li><span class="em">Runs end-to-end</span> -- not just key generation, but a complete election</li>
         <li><span class="em">Verifies itself</span> -- the demo checks every proof, catches its own bugs</li>
@@ -888,7 +998,7 @@ Available Commands:
       </ul>
     </div>
     <div style="margin:12px 0;">
-      <h3 style="color:#f85149;">What it intentionally skips</h3>
+      <h3 style="color:#cf222e;">What it intentionally skips</h3>
       <ul>
         <li><span class="em">Networking</span> -- everything is in-process (no HTTP, no gRPC)</li>
         <li><span class="em">Persistence</span> -- all in memory (no database, no files)</li>
@@ -920,13 +1030,13 @@ Available Commands:
   title: 'The Seven Principles',
   html: `
     <div style="line-height:2.4; font-size:15px;">
-      <div><span style="color:#58a6ff; font-weight:700;">1.</span> <span class="em">Make invalid states unrepresentable.</span><br><span class="dim" style="margin-left:18px;">Immutable types, private fields, defensive copies. Let the compiler help you.</span></div>
-      <div style="margin-top:8px;"><span style="color:#58a6ff; font-weight:700;">2.</span> <span class="em">Separate layers by concern.</span><br><span class="dim" style="margin-left:18px;">Math doesn't know about elections. Elections don't know about CLIs.</span></div>
-      <div style="margin-top:8px;"><span style="color:#58a6ff; font-weight:700;">3.</span> <span class="em">Thin wrappers, fat libraries.</span><br><span class="dim" style="margin-left:18px;">cmd/ parses flags. pkg/ does work. The engine is reusable.</span></div>
-      <div style="margin-top:8px;"><span style="color:#58a6ff; font-weight:700;">4.</span> <span class="em">Code should read like the specification.</span><br><span class="dim" style="margin-left:18px;">Name types and methods to match the domain. g.Exponentiate(r) not g.Op(r).</span></div>
-      <div style="margin-top:8px;"><span style="color:#58a6ff; font-weight:700;">5.</span> <span class="em">Minimize dependencies.</span><br><span class="dim" style="margin-left:18px;">Own your core domain. Depend on others for everything else.</span></div>
-      <div style="margin-top:8px;"><span style="color:#58a6ff; font-weight:700;">6.</span> <span class="em">Match error handling to context.</span><br><span class="dim" style="margin-left:18px;">Errors for external input. Panics for programming bugs. Context matters.</span></div>
-      <div style="margin-top:8px;"><span style="color:#58a6ff; font-weight:700;">7.</span> <span class="em">Know what to leave out.</span><br><span class="dim" style="margin-left:18px;">A PoC proves the concept. Not every PoC needs a database, REST API, and Docker Compose.</span></div>
+      <div><span style="color:#0969da; font-weight:700;">1.</span> <span class="em">Make invalid states unrepresentable.</span><br><span class="dim" style="margin-left:18px;">Immutable types, private fields, defensive copies. Let the compiler help you.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">2.</span> <span class="em">Separate layers by concern.</span><br><span class="dim" style="margin-left:18px;">Math doesn't know about elections. Elections don't know about CLIs.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">3.</span> <span class="em">Thin wrappers, fat libraries.</span><br><span class="dim" style="margin-left:18px;">cmd/ parses flags. pkg/ does work. The engine is reusable.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">4.</span> <span class="em">Code should read like the specification.</span><br><span class="dim" style="margin-left:18px;">Name types and methods to match the domain. g.Exponentiate(r) not g.Op(r).</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">5.</span> <span class="em">Minimize dependencies.</span><br><span class="dim" style="margin-left:18px;">Own your core domain. Depend on others for everything else.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">6.</span> <span class="em">Match error handling to context.</span><br><span class="dim" style="margin-left:18px;">Errors for external input. Panics for programming bugs. Context matters.</span></div>
+      <div style="margin-top:8px;"><span style="color:#0969da; font-weight:700;">7.</span> <span class="em">Know what to leave out.</span><br><span class="dim" style="margin-left:18px;">A PoC proves the concept. Not every PoC needs a database, REST API, and Docker Compose.</span></div>
     </div>
   `
 },
@@ -947,10 +1057,10 @@ Available Commands:
       <div class="stat-box"><div class="stat-num">0</div><div class="stat-label">Goroutines</div></div>
       <div class="stat-box"><div class="stat-num">5/5</div><div class="stat-label">Proofs valid</div></div>
     </div>
-    <div style="margin-top:24px; padding:16px; border:1px solid #30363d; border-radius:8px; text-align:center;">
-      <p style="color:#8b949e; font-size:13px;">This reimplements the cryptographic core of a system used in real Swiss federal elections.</p>
-      <p style="color:#8b949e; font-size:13px; margin-top:6px;">The production system: 14 repos, 500K+ lines, Java + Spring + Kubernetes + .NET + Angular.</p>
-      <p style="color:#e6edf3; font-size:15px; font-weight:600; margin-top:12px;">Good architecture makes complex things simple.</p>
+    <div style="margin-top:24px; padding:16px; border:1px solid #d0d7de; border-radius:8px; text-align:center;">
+      <p style="color:#57606a; font-size:13px;">This reimplements the cryptographic core of a system used in real Swiss federal elections.</p>
+      <p style="color:#57606a; font-size:13px; margin-top:6px;">The production system: 14 repos, 500K+ lines, Java + Spring + Kubernetes + .NET + Angular.</p>
+      <p style="color:#1f2328; font-size:15px; font-weight:600; margin-top:12px;">Good architecture makes complex things simple.</p>
     </div>
   `
 },
@@ -961,8 +1071,8 @@ Available Commands:
     <div class="title-card" style="padding-top:20vh;">
       <div style="font-size:40px; margin-bottom:24px;">&#x1F4AC;</div>
       <h1 style="font-size:24px;">Questions?</h1>
-      <div style="color:#484f58; font-size:13px; margin-top:20px; line-height:1.8;">
-        <code style="color:#8b949e;">go build ./cmd/evote && ./evote demo --voters=10 --options=3</code>
+      <div style="color:#8b949e; font-size:13px; margin-top:20px; line-height:1.8;">
+        <code style="color:#57606a;">go build ./cmd/evote && ./evote demo --voters=10 --options=3</code>
       </div>
     </div>
   `
@@ -976,6 +1086,14 @@ const prog = document.getElementById('progress-bar');
 const counter = document.getElementById('slide-counter');
 const partLbl = document.getElementById('part-label');
 
+function goNext() {
+  if (cur < S.length - 1) { cur++; render(); }
+}
+
+function goPrev() {
+  if (cur > 0) { cur--; render(); }
+}
+
 function render() {
   const s = S[cur], total = S.length;
   prog.style.width = ((cur/(total-1))*100)+'%';
@@ -986,6 +1104,13 @@ function render() {
   h += '<div>'+s.html+'</div></div>';
   stage.innerHTML = h;
   stage.scrollTop = 0;
+  if (cur === S.length - 1) {
+    stage.innerHTML += '<div class="manual-cta"><button onclick="window.parent.postMessage({type:\'manual\'},\'*\')">Continue to Operations Manual &#8594;</button></div>';
+  }
+  // Update nav bar
+  document.getElementById('nav-prev').disabled = (cur === 0);
+  document.getElementById('nav-next').disabled = (cur === S.length - 1);
+  document.getElementById('nav-counter').textContent = (cur+1)+' / '+total;
 }
 
 window.addEventListener('keydown', function(e) {
@@ -1000,11 +1125,11 @@ window.addEventListener('keydown', function(e) {
 }, true);
 
 let tx=0;
-document.addEventListener('touchstart', function(e){ tx=e.changedTouches[0].screenX; });
+document.addEventListener('touchstart', function(e){ tx=e.changedTouches[0].screenX; }, {passive: true});
 document.addEventListener('touchend', function(e){
   const d=e.changedTouches[0].screenX-tx;
-  if(Math.abs(d)>50){ if(d<0&&cur<S.length-1){cur++;render();}else if(d>0&&cur>0){cur--;render();} }
-  else { if(cur<S.length-1){cur++;render();} }
+  if(d<-60&&cur<S.length-1){cur++;render();}
+  else if(d>60&&cur>0){cur--;render();}
 });
 
 render();

@@ -7,42 +7,34 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0d1117;
-    color: #c9d1d9;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
-    font-size: 15px;
-    line-height: 1.6;
+    background: #ffffff;
+    color: #24292f;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
     overflow: hidden;
     height: 100vh;
   }
   #progress-bar {
     position: fixed; top: 0; left: 0;
-    height: 3px; background: #58a6ff;
+    height: 3px; background: #0969da;
     transition: width 0.4s ease;
     z-index: 100;
   }
   #slide-counter {
     position: fixed; top: 10px; right: 20px;
-    font-size: 12px; color: #484f58;
+    font-size: 12px; color: #8b949e;
     z-index: 100;
-  }
-  #nav-hint {
-    position: fixed; bottom: 15px; right: 20px;
-    font-size: 11px; color: #30363d;
-    z-index: 100;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
   #stage {
     max-width: 920px;
     margin: 0 auto;
-    padding: 40px 30px 60px;
+    padding: 40px 30px 80px;
     height: 100vh;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #21262d #0d1117;
+    -webkit-overflow-scrolling: touch;
   }
-  #stage::-webkit-scrollbar { width: 6px; }
-  #stage::-webkit-scrollbar-track { background: #0d1117; }
-  #stage::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
 
   .role-banner {
     display: inline-block;
@@ -58,19 +50,19 @@
     font-size: 22px;
     font-weight: 700;
     margin-bottom: 20px;
-    color: #e6edf3;
+    color: #1f2328;
   }
   .content { margin-bottom: 20px; }
 
   .decision-box {
-    border: 1px solid #30363d;
-    border-radius: 8px;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
     padding: 16px 20px;
     margin: 20px 0;
-    background: #161b22;
   }
   .decision-question {
-    color: #8b949e;
+    color: #57606a;
     font-size: 14px;
     margin-bottom: 10px;
   }
@@ -83,44 +75,46 @@
   }
 
   .crypto-block {
-    background: #161b22;
-    border: 1px solid #21262d;
-    border-radius: 6px;
+    background: #f6f8fa;
+    border: 1px solid #d8dee4;
+    border-radius: 8px;
     padding: 14px 18px;
     margin: 12px 0;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
     font-size: 13px;
     overflow-x: auto;
     white-space: pre;
     line-height: 1.5;
   }
-  .crypto-block .label { color: #8b949e; }
-  .crypto-block .value { color: #79c0ff; }
-  .crypto-block .secret { color: #f85149; }
-  .crypto-block .public { color: #56d364; }
-  .crypto-block .highlight { color: #d2a8ff; }
-  .crypto-block .dim { color: #484f58; }
+  .crypto-block .label { color: #57606a; }
+  .crypto-block .value { color: #0550ae; }
+  .crypto-block .secret { color: #cf222e; }
+  .crypto-block .public { color: #1a7f37; }
+  .crypto-block .highlight { color: #8250df; }
+  .crypto-block .dim { color: #8b949e; }
 
   .card-box {
-    border: 2px solid #f0c040;
+    border: 2px solid #d4a72c;
     border-radius: 8px;
     padding: 16px 20px;
     margin: 14px 0;
-    background: #1c1a12;
+    background: #fffbeb;
     white-space: pre;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
     font-size: 13px;
     line-height: 1.5;
   }
 
   .proof-line { margin: 2px 0; font-size: 13px; }
-  .proof-pass { color: #56d364; font-weight: 700; }
-  .proof-tree { color: #484f58; }
+  .proof-pass { color: #1a7f37; font-weight: 700; }
+  .proof-tree { color: #8b949e; }
 
   .result-box {
-    border: 2px solid #58a6ff;
+    border: 2px solid #0969da;
     border-radius: 8px;
     padding: 20px 24px;
     margin: 16px 0;
-    background: #0d1926;
+    background: #eff6ff;
     text-align: center;
   }
   .result-bar {
@@ -132,11 +126,11 @@
   }
 
   .verdict-box {
-    border: 2px solid #56d364;
+    border: 2px solid #1a7f37;
     border-radius: 8px;
     padding: 24px 28px;
     margin: 16px 0;
-    background: #0d2818;
+    background: #f0fdf4;
     font-size: 14px;
     line-height: 1.7;
   }
@@ -147,12 +141,18 @@
     margin: 12px 0;
     font-size: 13px;
   }
-  .voter-table th, .voter-table td {
+  .voter-table th {
     padding: 6px 12px;
     text-align: left;
-    border-bottom: 1px solid #21262d;
+    color: #57606a;
+    font-weight: 600;
+    border-bottom: 1px solid #d8dee4;
   }
-  .voter-table th { color: #8b949e; font-weight: 600; }
+  .voter-table td {
+    padding: 6px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e8ebef;
+  }
 
   /* Title card */
   .title-card {
@@ -161,22 +161,22 @@
   }
   .title-card h1 {
     font-size: 32px;
-    color: #e6edf3;
+    color: #1f2328;
     margin-bottom: 12px;
     font-weight: 800;
   }
   .title-card .subtitle {
     font-size: 16px;
-    color: #8b949e;
+    color: #57606a;
     margin-bottom: 40px;
   }
   .title-card .swiss-cross {
     font-size: 60px;
-    color: #f85149;
+    color: #dc2626;
     margin-bottom: 30px;
   }
   .title-card .start-hint {
-    color: #484f58;
+    color: #8b949e;
     font-size: 13px;
     margin-top: 50px;
     animation: pulse 2s ease-in-out infinite;
@@ -187,20 +187,20 @@
   }
 
   /* Role colors */
-  .role-chancellor { background: #f0c040; color: #0d1117; }
-  .role-cc { background: #00ff88; color: #0d1117; }
-  .role-voter { background: #60a0ff; color: #0d1117; }
-  .role-eb { background: #ff8844; color: #0d1117; }
-  .role-auditor { background: #ff4466; color: #0d1117; }
-  .role-system { background: #555; color: #e6edf3; }
-  .role-none { background: #30363d; color: #e6edf3; }
+  .role-chancellor { background: #fef3c7; color: #92400e; }
+  .role-cc { background: #d1fae5; color: #065f46; }
+  .role-voter { background: #dbeafe; color: #1e40af; }
+  .role-eb { background: #fed7aa; color: #9a3412; }
+  .role-auditor { background: #fecaca; color: #991b1b; }
+  .role-system { background: #e5e7eb; color: #374151; }
+  .role-none { background: #e5e7eb; color: #374151; }
 
-  .color-chancellor { color: #f0c040; }
-  .color-cc { color: #00ff88; }
-  .color-voter { color: #60a0ff; }
-  .color-eb { color: #ff8844; }
-  .color-auditor { color: #ff4466; }
-  .color-system { color: #aaaaaa; }
+  .color-chancellor { color: #b45309; }
+  .color-cc { color: #059669; }
+  .color-voter { color: #2563eb; }
+  .color-eb { color: #c2410c; }
+  .color-auditor { color: #dc2626; }
+  .color-system { color: #57606a; }
 
   .fade-in { animation: fadeIn 0.3s ease-in; }
   @keyframes fadeIn {
@@ -208,17 +208,68 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .em { color: #e6edf3; font-weight: 600; }
-  .dim { color: #484f58; }
-  .note { color: #8b949e; font-size: 13px; font-style: italic; }
+  .em { color: #1f2328; font-weight: 600; }
+  .dim { color: #8b949e; }
+  .note { color: #57606a; font-size: 13px; font-style: italic; }
+  #home-btn {
+    position: fixed; top: 10px; left: 20px;
+    background: none; border: 1px solid #d0d7de; color: #57606a;
+    padding: 3px 10px; border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px; cursor: pointer; z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #home-btn:hover { border-color: #0969da; color: #0969da; }
+  .manual-cta { text-align: center; margin-top: 30px; padding: 20px; }
+  .manual-cta button {
+    background: #0969da; color: #fff; border: none;
+    padding: 12px 24px; border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .manual-cta button:hover { background: #0550ae; }
+
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #0969da; color: #ffffff;
+    font-size: 13px; font-weight: 700;
+  }
+
+  /* Nav bar */
+  #nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 20px env(safe-area-inset-bottom);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid #d8dee4;
+    z-index: 100; gap: 24px;
+  }
+  #nav-bar button {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid #d0d7de; background: #fff; color: #24292f;
+    font-size: 20px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #nav-bar button:active { background: #f6f8fa; }
+  #nav-bar button:disabled { opacity: 0.25; }
+  #nav-counter { font-size: 13px; color: #8b949e; min-width: 70px; text-align: center; font-family: -apple-system, sans-serif; }
 </style>
 </head>
 <body>
 
 <div id="progress-bar"></div>
 <div id="slide-counter"></div>
-<div id="nav-hint">Space / Enter / Arrow keys to navigate</div>
+<button id="home-btn" onclick="window.parent.postMessage({type:'home'},'*')">&#8592; Home</button>
 <div id="stage"></div>
+<div id="nav-bar">
+  <button id="nav-prev" onclick="goPrev()" aria-label="Previous">&#8592;</button>
+  <div id="nav-counter"></div>
+  <button id="nav-next" onclick="goNext()" aria-label="Next">&#8594;</button>
+</div>
 
 <script>
 const SLIDES = [
@@ -230,7 +281,7 @@ const SLIDES = [
         <div class="swiss-cross">&#x1F1E8;&#x1F1ED;</div>
         <h1>Swiss Post E-Voting</h1>
         <div class="subtitle">A Cryptographic Election in 27 Steps</div>
-        <div style="color:#484f58; font-size:13px; margin-top:10px;">
+        <div style="color:#8b949e; font-size:13px; margin-top:10px;">
           6 voters &middot; 2 candidates &middot; 4 control components &middot; 5 shuffle proofs
         </div>
         <div class="start-hint">Press Space to begin</div>
@@ -699,7 +750,7 @@ No single component could fake this code. All 4 CCs contributed.</span></div>
     roleClass: 'role-none',
     title: 'Voting Period Closed',
     html: `
-      <p style="font-size:18px; color:#e6edf3; margin-bottom:20px;">6 ballots cast. The voting period is over.</p>
+      <p style="font-size:18px; color:#1f2328; margin-bottom:20px;">6 ballots cast. The voting period is over.</p>
       <div class="crypto-block"><span class="label">What the server sees (hex dump of encrypted ballots):</span>
 
   <span class="dim">Voter 0 | Alice  |</span> <span class="value">E01E83B2B8...B8A0745F41</span>
@@ -826,7 +877,7 @@ No way to match them.</span></div>
     title: 'Election Result',
     html: `
       <div class="result-box">
-        <div style="font-size:20px; font-weight:700; color:#e6edf3; margin-bottom:20px;">ELECTION RESULT</div>
+        <div style="font-size:20px; font-weight:700; color:#1f2328; margin-bottom:20px;">ELECTION RESULT</div>
         <div style="text-align:left; display:inline-block;">
           <div style="margin:8px 0; font-size:16px;">
             <span class="value" style="display:inline-block; width:60px;">Alice</span>
@@ -839,7 +890,7 @@ No way to match them.</span></div>
             <span class="result-bar" style="width:50px; background:#60a0ff;"></span>
           </div>
         </div>
-        <div style="margin-top:20px; color:#56d364; font-weight:700; font-size:16px;">Alice is elected.</div>
+        <div style="margin-top:20px; color:#1a7f37; font-weight:700; font-size:16px;">Alice is elected.</div>
       </div>
       <div class="crypto-block"><span class="label">Sanity check:</span>
   Expected: Alice=5 Bob=1 <span class="dim">(from your votes)</span>
@@ -918,7 +969,7 @@ No way to match them.</span></div>
     title: 'The Verdict',
     html: `
       <div class="verdict-box">
-        <div style="text-align:center; font-size:18px; font-weight:700; color:#56d364; margin-bottom:16px;">ALL VERIFICATIONS PASSED.</div>
+        <div style="text-align:center; font-size:18px; font-weight:700; color:#1a7f37; margin-bottom:16px;">ALL VERIFICATIONS PASSED.</div>
         <p>As a public auditor, you have independently verified:</p>
         <div style="margin:14px 0 14px 10px;">
           <div style="margin:6px 0;"><span class="proof-pass">[x]</span> All 4 key holders proved they know their secrets</div>
@@ -928,30 +979,30 @@ No way to match them.</span></div>
         </div>
         <p style="margin-top:14px;">You did this <span class="em">WITHOUT</span> any secret keys.</p>
         <p>You did this <span class="em">WITHOUT</span> trusting anyone.</p>
-        <p style="margin-top:10px; color:#56d364; font-weight:600;">Pure mathematics.</p>
+        <p style="margin-top:10px; color:#1a7f37; font-weight:600;">Pure mathematics.</p>
       </div>
 
-      <div style="margin-top:24px; padding:20px; border:1px solid #21262d; border-radius:8px; background:#161b22;">
-        <div style="color:#8b949e; font-size:13px; margin-bottom:12px;">RECAP -- What you experienced:</div>
+      <div style="margin-top:24px; padding:20px; border:1px solid #d0d7de; border-radius:8px; background:#f6f8fa;">
+        <div style="color:#57606a; font-size:13px; margin-bottom:12px;">RECAP -- What you experienced:</div>
         <div style="margin:10px 0;">
           <span class="color-cc" style="font-weight:700;">AS THE CC OPERATOR:</span>
-          <span style="color:#c9d1d9;"> You generated keys, shuffled votes, created proofs. You never saw anyone's vote. Even you can't undo your own shuffle -- the permutation was destroyed.</span>
+          <span style="color:#24292f;"> You generated keys, shuffled votes, created proofs. You never saw anyone's vote. Even you can't undo your own shuffle -- the permutation was destroyed.</span>
         </div>
         <div style="margin:10px 0;">
           <span class="color-voter" style="font-weight:700;">AS THE VOTER:</span>
-          <span style="color:#c9d1d9;"> Your vote was encrypted in your browser. The server stored only noise. Return codes on your physical card confirmed it was recorded correctly.</span>
+          <span style="color:#24292f;"> Your vote was encrypted in your browser. The server stored only noise. Return codes on your physical card confirmed it was recorded correctly.</span>
         </div>
         <div style="margin:10px 0;">
           <span class="color-auditor" style="font-weight:700;">AS THE AUDITOR:</span>
-          <span style="color:#c9d1d9;"> You verified every step with public data and math. No trust required. No access to secrets. The proofs are either valid or they aren't. No gray area.</span>
+          <span style="color:#24292f;"> You verified every step with public data and math. No trust required. No access to secrets. The proofs are either valid or they aren't. No gray area.</span>
         </div>
       </div>
 
-      <div style="margin-top:24px; padding:16px; border:1px solid #30363d; border-radius:8px; text-align:center;">
-        <p style="color:#8b949e; font-size:13px;">This is the same protocol used in real Swiss federal elections.</p>
-        <p style="color:#8b949e; font-size:13px; margin-top:6px;">The production system: 14 repositories, 500,000+ lines, Windows + Kubernetes + 50GB RAM.</p>
-        <p style="color:#8b949e; font-size:13px; margin-top:6px;">This demo: one 15MB Go binary on a Mac.</p>
-        <p style="color:#e6edf3; font-size:14px; font-weight:600; margin-top:10px;">The math is identical.</p>
+      <div style="margin-top:24px; padding:16px; border:1px solid #d0d7de; border-radius:8px; text-align:center;">
+        <p style="color:#57606a; font-size:13px;">This is the same protocol used in real Swiss federal elections.</p>
+        <p style="color:#57606a; font-size:13px; margin-top:6px;">The production system: 14 repositories, 500,000+ lines, Windows + Kubernetes + 50GB RAM.</p>
+        <p style="color:#57606a; font-size:13px; margin-top:6px;">This demo: one 15MB Go binary on a Mac.</p>
+        <p style="color:#1f2328; font-size:14px; font-weight:600; margin-top:10px;">The math is identical.</p>
       </div>
     `
   }
@@ -961,6 +1012,23 @@ let currentSlide = 0;
 const stage = document.getElementById('stage');
 const progressBar = document.getElementById('progress-bar');
 const slideCounter = document.getElementById('slide-counter');
+const navPrev = document.getElementById('nav-prev');
+const navNext = document.getElementById('nav-next');
+const navCounter = document.getElementById('nav-counter');
+
+function goNext() {
+  if (currentSlide < SLIDES.length - 1) {
+    currentSlide++;
+    render();
+  }
+}
+
+function goPrev() {
+  if (currentSlide > 0) {
+    currentSlide--;
+    render();
+  }
+}
 
 function render() {
   const slide = SLIDES[currentSlide];
@@ -968,6 +1036,10 @@ function render() {
 
   progressBar.style.width = ((currentSlide / (total - 1)) * 100) + '%';
   slideCounter.textContent = (currentSlide + 1) + ' / ' + total;
+
+  navPrev.disabled = (currentSlide === 0);
+  navNext.disabled = (currentSlide === total - 1);
+  navCounter.textContent = (currentSlide + 1) + ' / ' + total;
 
   let html = '<div class="fade-in">';
 
@@ -984,22 +1056,19 @@ function render() {
 
   stage.innerHTML = html;
   stage.scrollTop = 0;
+  if (currentSlide === SLIDES.length - 1) {
+    stage.innerHTML += '<div class="manual-cta"><button onclick="window.parent.postMessage({type:\'manual\'},\'*\')">Continue to Operations Manual &#8594;</button></div>';
+  }
 }
 
 window.addEventListener('keydown', function(e) {
   if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown') {
     e.preventDefault();
     e.stopPropagation();
-    if (currentSlide < SLIDES.length - 1) {
-      currentSlide++;
-      render();
-    }
+    goNext();
   } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
     e.preventDefault();
-    if (currentSlide > 0) {
-      currentSlide--;
-      render();
-    }
+    goPrev();
   } else if (e.key === 'Home') {
     e.preventDefault();
     currentSlide = 0;
@@ -1011,25 +1080,24 @@ window.addEventListener('keydown', function(e) {
   }
 });
 
-// Touch support for mobile
+// Touch support for mobile — swipe only, no tap-to-advance
 let touchStartX = 0;
+let touchStartY = 0;
 document.addEventListener('touchstart', function(e) {
   touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
 });
 document.addEventListener('touchend', function(e) {
-  const diff = e.changedTouches[0].screenX - touchStartX;
-  if (Math.abs(diff) > 50) {
-    if (diff < 0 && currentSlide < SLIDES.length - 1) {
+  const diffX = e.changedTouches[0].screenX - touchStartX;
+  const diffY = e.changedTouches[0].screenY - touchStartY;
+  // Only navigate on horizontal swipe with threshold of 60px,
+  // and only if horizontal movement exceeds vertical (not a scroll)
+  if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX < 0 && currentSlide < SLIDES.length - 1) {
       currentSlide++;
       render();
-    } else if (diff > 0 && currentSlide > 0) {
+    } else if (diffX > 0 && currentSlide > 0) {
       currentSlide--;
-      render();
-    }
-  } else {
-    // Tap to advance
-    if (currentSlide < SLIDES.length - 1) {
-      currentSlide++;
       render();
     }
   }

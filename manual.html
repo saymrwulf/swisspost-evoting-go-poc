@@ -289,8 +289,8 @@
 
 <h3>1.1 Purpose of This Manual</h3>
 <p>This manual provides step-by-step operational procedures for all participants in the Swiss Post e-voting election ceremony, as implemented in the Go proof-of-concept (PoC) system <code>evote</code>.</p>
-<p>The Go PoC reimplements the cryptographic core of the production Swiss Post e-voting system in approximately 6,500 lines of Go. It uses the same algorithms (ElGamal encryption, Schnorr proofs, Bayer-Groth verifiable shuffle) but operates as a single-machine, command-line tool rather than a distributed multi-server deployment.</p>
-<p>Despite the simplified infrastructure, the Go PoC preserves the <strong>same role structure</strong> as the production system. Each role's responsibilities, trust boundaries, and ceremony steps are faithfully reproduced. This ensures operational familiarity and avoids disrupting the agreed-upon organizational framework with its legal underpinnings.</p>
+<p>The Go PoC reimplements the cryptographic core of the production Swiss Post e-voting system in roughly ten thousand lines of Go, plus a small Rust crate for transport security. It uses the same algorithms (ElGamal encryption, Schnorr proofs, Bayer-Groth verifiable shuffle) and offers two modes: a single-machine <code>demo</code> command-line tool, and a multi-party <code>netdemo</code> where each role is a separate endpoint communicating over an Ed25519-signed, X25519-encrypted transport (no RSA).</p>
+<p>The Go PoC preserves the <strong>same role structure</strong> as the production system. Each role's responsibilities, trust boundaries, and ceremony steps are faithfully reproduced; in <code>netdemo</code> mode the trust boundaries are enforced cryptographically, with every inter-party message signed and verified. This ensures operational familiarity and avoids disrupting the agreed-upon organizational framework with its legal underpinnings.</p>
 
 <h3>1.2 System Overview</h3>
 <p>The e-voting system operates in three phases across three days:</p>
@@ -326,10 +326,10 @@
 <h3>1.4 Prerequisites</h3>
 <p>To operate the Go PoC system, you need:</p>
 <ul>
-  <li>The <code>evote</code> binary (build with <code>go build ./cmd/evote</code> from the <code>evote/</code> directory)</li>
-  <li>Go 1.21 or later (only for building; the binary is self-contained)</li>
+  <li>The <code>evote</code> binary (build with <code>make build</code>, or <code>go build ./cmd/evote</code> from the <code>evote/</code> directory)</li>
+  <li>Go 1.25 or later, plus a Rust toolchain for the <code>netdemo</code> transport-security library (only for building; the binary is self-contained)</li>
   <li>A terminal (macOS Terminal, Linux shell, or Windows command prompt)</li>
-  <li>No network access, database, or external services required</li>
+  <li>No external network, database, or services required &mdash; the <code>netdemo</code> signed transport runs in-process</li>
 </ul>
 <div class="code-block"># Build the binary
 cd evote/
@@ -879,10 +879,11 @@ go build -o evote ./cmd/evote
 
 <table>
   <tr><th>Aspect</th><th>Production System</th><th>Go PoC</th></tr>
-  <tr><td>Language</td><td>Java 21 + TypeScript + C#</td><td>Go</td></tr>
+  <tr><td>Language</td><td>Java 21 + TypeScript + C#</td><td>Go + Rust (transport security)</td></tr>
   <tr><td>Prime size</td><td>3072 bits (128-bit security)</td><td>256 bits (demo only)</td></tr>
-  <tr><td>Infrastructure</td><td>Kubernetes cluster + 4 bare-metal CCs + SDM machines</td><td>Single binary, single machine</td></tr>
-  <tr><td>Networking</td><td>HTTPS/TLS, RSocket/CBOR, ActiveMQ</td><td>In-memory (no network)</td></tr>
+  <tr><td>Infrastructure</td><td>Kubernetes cluster + 4 bare-metal CCs + SDM machines</td><td>Single binary; <code>netdemo</code> splits parties into separate in-process endpoints</td></tr>
+  <tr><td>Networking</td><td>HTTPS/TLS, RSocket/CBOR, ActiveMQ</td><td>In-process signed message bus (<code>netdemo</code>); no external network</td></tr>
+  <tr><td>Signatures / key exchange</td><td>RSASSA-PSS, RSA-based channels, RSA X.509</td><td>Ed25519 + X25519, Ed25519 X.509 (Rust); no RSA</td></tr>
   <tr><td>Persistence</td><td>PostgreSQL databases</td><td>In-memory (no persistence)</td></tr>
   <tr><td>SDM</td><td>Electron desktop app, air-gapped Windows machines</td><td>CLI commands</td></tr>
   <tr><td>Voter Portal</td><td>Angular SPA, 4 languages</td><td>Simulated in CLI</td></tr>
@@ -893,10 +894,10 @@ go build -o evote ./cmd/evote
   <tr><td>Schnorr proofs</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
   <tr><td>Bayer-Groth shuffle</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
   <tr><td>Fiat-Shamir heuristic</td><td>SHA3-256 recursive hash</td><td>SHA3-256 recursive hash</td></tr>
-  <tr><td>Role structure</td><td>Distributed across organizations</td><td>Same roles, single operator</td></tr>
+  <tr><td>Role structure</td><td>Distributed across organizations</td><td>Same roles; <code>netdemo</code> separates them over a signed transport</td></tr>
   <tr><td>Four-eyes principle</td><td>Enforced physically</td><td>Organizational (not enforced by software)</td></tr>
-  <tr><td>Source code</td><td>~500,000 lines across 14 repos</td><td>~6,500 lines, 1 module</td></tr>
-  <tr><td>Dependencies</td><td>BouncyCastle, Spring, Angular, Electron, ...</td><td>Cobra + x/crypto</td></tr>
+  <tr><td>Source code</td><td>~500,000 lines across 14 repos</td><td>~10.5K lines Go + small Rust crate, 1 module</td></tr>
+  <tr><td>Dependencies</td><td>BouncyCastle, Spring, Angular, Electron, ...</td><td>Cobra + x/crypto; ed25519-dalek + x25519-dalek (Rust)</td></tr>
 </table>
 
 <div class="separator"></div>
