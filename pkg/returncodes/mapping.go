@@ -75,3 +75,29 @@ func (mt *MappingTable) Lookup(lCCValue *big.Int) (string, error) {
 func (mt *MappingTable) Size() int {
 	return len(mt.entries)
 }
+
+// MappingRow is a serializable mapping-table entry (for transport between the
+// setup component and the voting server).
+type MappingRow struct {
+	Key        string `json:"key"`
+	Ciphertext []byte `json:"ciphertext"`
+	Nonce      []byte `json:"nonce"`
+}
+
+// Export returns the table's entries in a serializable form.
+func (mt *MappingTable) Export() []MappingRow {
+	rows := make([]MappingRow, 0, len(mt.entries))
+	for k, e := range mt.entries {
+		rows = append(rows, MappingRow{Key: k, Ciphertext: e.Ciphertext, Nonce: e.Nonce})
+	}
+	return rows
+}
+
+// ImportMappingTable rebuilds a mapping table from exported rows.
+func ImportMappingTable(rows []MappingRow) *MappingTable {
+	mt := NewMappingTable()
+	for _, r := range rows {
+		mt.entries[r.Key] = MappingEntry{Ciphertext: r.Ciphertext, Nonce: r.Nonce}
+	}
+	return mt
+}

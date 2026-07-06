@@ -117,6 +117,8 @@ func (p *VoterClient) handle(env *transport.Envelope) (*transport.Envelope, erro
 	switch env.Type {
 	case MsgHello:
 		return handleHello(p.id, env)
+	case MsgVotingCard:
+		return p.handleVotingCard(env)
 	default:
 		return nil, fmt.Errorf("%s: unexpected message type %q", p.id.Name, env.Type)
 	}

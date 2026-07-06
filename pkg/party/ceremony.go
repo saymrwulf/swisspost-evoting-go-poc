@@ -156,3 +156,47 @@ func (c *Ceremony) send(from *transport.Identity, to, msgType string, payload an
 var globalNonce uint64
 
 func (c *Ceremony) nextNonce() uint64 { globalNonce++; return globalNonce }
+
+// sendConfidential signs AND encrypts a message: the payload is sealed under an
+// X25519-derived session key (AES-256-GCM) before the envelope is Ed25519-signed.
+// This gives both confidentiality (channel) and authenticity (signature).
+func (c *Ceremony) sendConfidential(from *transport.Identity, to, msgType string, payload any) (*transport.Envelope, error) {
+	peer, err := c.Dir.Lookup(to)
+	if err != nil {
+		return nil, err
+	}
+	ch, err := from.NewSecureChannel(to, peer.XPub)
+	if err != nil {
+		return nil, err
+	}
+	plain, err := transport.MarshalPayload(payload)
+	if err != nil {
+		return nil, err
+	}
+	sealed, err := ch.EncryptPayload(plain, []byte(msgType))
+	if err != nil {
+		return nil, err
+	}
+	env := &transport.Envelope{From: from.Name, To: to, Type: msgType, Nonce: c.nextNonce(), Encrypted: true, Payload: sealed}
+	if err := env.Seal(from); err != nil {
+		return nil, err
+	}
+	return c.Bus.Send(env)
+}
+
+// openConfidential decrypts an encrypted envelope addressed to the local party.
+func (c *Ceremony) openConfidential(local *transport.Identity, env *transport.Envelope, v any) error {
+	peer, err := c.Dir.Lookup(env.From)
+	if err != nil {
+		return err
+	}
+	ch, err := local.NewSecureChannel(env.From, peer.XPub)
+	if err != nil {
+		return err
+	}
+	plain, err := ch.DecryptPayload(env.Payload, []byte(env.Type))
+	if err != nil {
+		return fmt.Errorf("decrypt %s->%s: %w", env.From, env.To, err)
+	}
+	return transport.UnmarshalPayload(plain, v)
+}
