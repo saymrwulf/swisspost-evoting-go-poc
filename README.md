@@ -1,8 +1,8 @@
 # Swiss Post E-Voting — Go PoC
 
-A ground-up reimplementation of the Swiss Post e-voting cryptographic protocol as a single Go binary.
+A ground-up reimplementation of the Swiss Post e-voting cryptographic protocol as a single Go binary, with a multi-party mode where the parties talk over a Rust-signed transport.
 
-The Swiss Post system is Switzerland's official internet voting platform, used in binding federal elections. The production system spans **14 Java repositories, 500K+ lines of code, and requires 50GB of RAM**. This PoC distills the core cryptographic protocol into **52 Go files with 2 dependencies**.
+The Swiss Post system is Switzerland's official internet voting platform, used in binding federal elections. The production system spans **14 Java repositories, 500K+ lines of code, and requires 50GB of RAM**. This PoC distills the core cryptographic protocol into **~94 Go files (~10.5K lines) plus a small Rust crate for transport security**. Two runtime modes: `demo` (single process) and `netdemo` (each party a separate endpoint, communicating only over Ed25519-signed / X25519-encrypted messages implemented in Rust — see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
 ## What This Implements
 
@@ -126,20 +126,26 @@ Phase 4: VERIFICATION
 | Aspect | Production (Swiss Post) | This PoC |
 |--------|------------------------|----------|
 | Group size | 3072-bit safe prime | 256-bit safe prime |
-| Codebase | 14 repos, 500K+ lines (Java) | 52 files, 15K lines (Go) |
+| Codebase | 14 repos, 500K+ lines (Java) | ~94 Go files (~10.5K lines) + Rust crate |
 | Infrastructure | Kubernetes, HSMs, air-gapped machines | Single binary, your laptop |
-| Dependencies | Spring Boot, Bouncy Castle, Angular, ... | Cobra + stdlib crypto |
+| Signatures / key exchange | RSASSA-PSS, RSA channels | Ed25519 / X25519 (Rust), no RSA |
+| Dependencies | Spring Boot, Bouncy Castle, Angular, ... | Cobra + golang.org/x/crypto; ed25519-dalek + x25519-dalek (Rust) |
+| Party isolation | Separate machines / operators | Separate in-process endpoints over a signed bus (`netdemo`) |
 | Memory | 50GB+ RAM | ~50MB |
-| Binary | N/A (Java services) | 9.5MB static binary |
+| Binary | N/A (Java services) | ~9.5MB (Go + linked Rust static lib) |
 | Startup | Minutes (JVM + Spring) | Instant |
 
 ## Presentations
 
-Three HTML slide decks are included, viewable in any browser or served to iPad via `./evote serve`:
+HTML slide decks are embedded in the binary and served via `./evote serve` (iPad-friendly);
+the same files live under [cmd/evote/web/](cmd/evote/web/):
 
-- **presentation.html** — Protocol overview: how a cryptographic election works
-- **presentation-crypto.html** — Deep dive into the mathematics (ElGamal, ZKPs, Bayer-Groth)
-- **presentation-swe.html** — Software engineering perspective: building a government election system in Go
+- **index.html** — Landing page and operations overview
+- **demo.html** — Protocol walkthrough: how a cryptographic election works
+- **crypto.html** — The mathematics (ElGamal, ZKPs, Bayer-Groth, Ed25519/X25519 transport, cast-as-intended)
+- **swe.html** — Software engineering: building it in Go, plus the multi-party re-architecture and the Rust transport-security layer
+
+Standalone copies (`presentation*.html`, `manual.html`) are kept at the repo root for direct browsing.
 
 ## Project Structure
 
