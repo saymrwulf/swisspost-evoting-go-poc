@@ -18,6 +18,7 @@ type PublicTranscript struct {
 	CCSchnorr     [][]zkp.SchnorrProof // per-CC Schnorr proofs of key knowledge
 	EBPublicKey   elgamal.PublicKey    // electoral board public key
 	ElectionPK    elgamal.PublicKey    // combined election public key
+	ReturnCodePK  elgamal.PublicKey    // combined return-codes public key (CCs only, no EB)
 	Primes        []string             // decimal encodings of the encoding primes
 
 	// Tally artifacts.

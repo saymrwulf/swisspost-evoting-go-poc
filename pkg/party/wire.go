@@ -138,6 +138,32 @@ func (w wireSchnorr) decodeExponentiation(zq *emath.ZqGroup) (zkp.Exponentiation
 	return zkp.ExponentiationProof{E: e, Z: z}, nil
 }
 
+// --- plaintext-equality proof (E scalar + Z vector of 2) ---
+
+type wirePlaintextEquality struct {
+	E string   `json:"e"`
+	Z []string `json:"z"`
+}
+
+func encodePlaintextEquality(p zkp.PlaintextEqualityProof) wirePlaintextEquality {
+	return wirePlaintextEquality{E: zqToStr(p.E), Z: zqVecToStrs(p.Z)}
+}
+
+func (w wirePlaintextEquality) decode(zq *emath.ZqGroup) (zkp.PlaintextEqualityProof, error) {
+	e, err := strToZq(w.E, zq)
+	if err != nil {
+		return zkp.PlaintextEqualityProof{}, fmt.Errorf("pe E: %w", err)
+	}
+	z, err := strsToZqVec(w.Z, zq)
+	if err != nil {
+		return zkp.PlaintextEqualityProof{}, fmt.Errorf("pe Z: %w", err)
+	}
+	if z.Size() != 2 {
+		return zkp.PlaintextEqualityProof{}, fmt.Errorf("pe Z must have size 2, got %d", z.Size())
+	}
+	return zkp.PlaintextEqualityProof{E: e, Z: z}, nil
+}
+
 // --- ciphertext ---
 
 type wireCiphertext struct {

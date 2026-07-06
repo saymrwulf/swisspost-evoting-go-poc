@@ -163,8 +163,13 @@ func (p *VoterClient) handleVotingCard(env *transport.Envelope) (*transport.Enve
 	if err != nil {
 		return nil, err
 	}
+	rcPK, err := d.ReturnCodePK.decode(group)
+	if err != nil {
+		return nil, err
+	}
 	p.st.card = &d.Card
 	p.st.electionPK = pk
+	p.st.returnCodePK = rcPK
 	p.st.primes = make([]*big.Int, len(d.Primes))
 	for i, ps := range d.Primes {
 		v, ok := new(big.Int).SetString(ps, 10)

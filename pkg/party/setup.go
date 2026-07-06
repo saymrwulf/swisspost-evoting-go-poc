@@ -129,6 +129,7 @@ func (c *Ceremony) RunSetup() error {
 	c.Transcript.ElectionID = cfg.ElectionID
 	c.Transcript.EBPublicKey = ebPK
 	c.Transcript.ElectionPK = c.Setup.st.electionPK
+	c.Transcript.ReturnCodePK = c.Setup.st.returnCodePK
 	c.Transcript.Primes = make([]string, len(c.Setup.st.primes))
 	for i, p := range c.Setup.st.primes {
 		c.Transcript.Primes[i] = p.String()

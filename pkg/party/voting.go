@@ -21,16 +21,20 @@ const (
 
 // wireBallot is a submitted ballot. It carries the encrypted vote, the
 // exponentiated ciphertext, the verification-card public key (persisted so a
-// remote party can reconstruct the proof statement — finding F6), and the
-// exponentiation proof binding vcPK to the exponentiation.
+// remote party can reconstruct the proof statement — finding F6), the
+// exponentiation proof binding vcPK to the exponentiation, and the return-code
+// ciphertext E2 with a plaintext-equality proof binding it to the ballot (so the
+// return code is genuinely derived from the submitted vote — cast-as-intended).
 type wireBallot struct {
-	VoterID        string         `json:"voter_id"`
-	VcID           string         `json:"vc_id"`
-	Ciphertext     wireCiphertext `json:"ciphertext"`
-	ExponentiatedG string         `json:"exp_gamma"`
-	ExponentiatedP string         `json:"exp_phi0"`
-	VcPK           string         `json:"vc_pk"`
-	ExpProof       wireSchnorr    `json:"exp_proof"`
+	VoterID        string                `json:"voter_id"`
+	VcID           string                `json:"vc_id"`
+	Ciphertext     wireCiphertext        `json:"ciphertext"`
+	ExponentiatedG string                `json:"exp_gamma"`
+	ExponentiatedP string                `json:"exp_phi0"`
+	VcPK           string                `json:"vc_pk"`
+	ExpProof       wireSchnorr           `json:"exp_proof"`
+	ReturnCodeCT   wireCiphertext        `json:"return_code_ct"` // E2: Enc(vote, returnCodesPK[0])
+	EqProof        wirePlaintextEquality `json:"eq_proof"`       // proves E1[0] and E2 encrypt the same vote
 }
 
 // RunVoting has every voter encrypt its selection and submit a ballot; the
@@ -75,7 +79,8 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 	for i := 1; i < cfg.NumOptions; i++ {
 		msgElems[i] = group.Identity()
 	}
-	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(msgElems...)), emath.RandomZqElement(zq), p.st.electionPK)
+	msgRandomness := emath.RandomZqElement(zq)
+	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(msgElems...)), msgRandomness, p.st.electionPK)
 
 	// 2. Verification-card key pair.
 	p.st.vcSK = emath.RandomZqElement(zq)
@@ -94,6 +99,25 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 		hash.HashableString{Value: p.st.card.VerificationCardID},
 	)
 
+	// 5. Return-code ciphertext E2 and the plaintext-equality proof binding it
+	//    to the ballot. E2 encrypts the same vote value (slot 0) under the
+	//    return-codes key; the proof lets the CCs trust that the return code
+	//    they compute from E2 reflects the actually-submitted vote. (Single
+	//    selected option — the return-code channel is defined for one choice.)
+	rcPK0 := elgamal.PublicKey{Elements: emath.GqVectorOf(p.st.returnCodePK.Get(0))}
+	r2 := emath.RandomZqElement(zq)
+	e2 := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(voteElem)), r2, rcPK0)
+
+	// Single-component view of the ballot's slot 0 for the equality statement.
+	c1 := elgamal.NewCiphertext(ct.Gamma, emath.GqVectorOf(ct.GetPhi(0)))
+	eqProof := zkp.GenPlaintextEqualityProof(
+		c1, e2,
+		p.st.electionPK.Get(0), p.st.returnCodePK.Get(0),
+		msgRandomness, r2, group,
+		hash.HashableString{Value: cfg.ElectionID},
+		hash.HashableString{Value: p.st.card.VerificationCardID},
+	)
+
 	ballot := wireBallot{
 		VoterID:        p.st.card.VoterID,
 		VcID:           p.st.card.VerificationCardID,
@@ -102,6 +126,8 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 		ExponentiatedP: phi0Exp.Value().String(),
 		VcPK:           vcPK.Value().String(),
 		ExpProof:       encodeExponentiation(expProof),
+		ReturnCodeCT:   encodeCiphertext(e2),
+		EqProof:        encodePlaintextEquality(eqProof),
 	}
 	return p.cer.send(p.id, NameServer, MsgCastBallot, ballot)
 }
@@ -205,6 +231,30 @@ func (p *ControlComponent) handleVerifyBallot(env *transport.Envelope) (*transpo
 	)
 	if !ok {
 		return reject("exponentiation proof INVALID")
+	}
+
+	// Verify the plaintext-equality proof binding E2 to the ballot's slot 0.
+	// This is what makes the return code cast-as-intended: if E2 encrypted a
+	// different vote than the ballot, this proof fails and the ballot is
+	// rejected, so the code computed from E2 must reflect the tallied vote.
+	e2, err := b.ReturnCodeCT.decode(group)
+	if err != nil {
+		return reject("bad return-code ciphertext")
+	}
+	eqProof, err := b.EqProof.decode(zq)
+	if err != nil {
+		return reject("bad equality proof encoding")
+	}
+	c1 := elgamal.NewCiphertext(ct.Gamma, emath.GqVectorOf(ct.GetPhi(0)))
+	eqOK := zkp.VerifyPlaintextEqualityProof(
+		c1, e2,
+		p.cer.Transcript.ElectionPK.Get(0), p.cer.Transcript.ReturnCodePK.Get(0),
+		eqProof, group,
+		hash.HashableString{Value: cfg.ElectionID},
+		hash.HashableString{Value: b.VcID},
+	)
+	if !eqOK {
+		return reject("plaintext-equality proof INVALID")
 	}
 	return reply(p.id, env.From, MsgBallotVerdict, env.Nonce, ballotVerdict{Accept: true})
 }
