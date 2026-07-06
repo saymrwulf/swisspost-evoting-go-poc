@@ -1234,6 +1234,40 @@ r = <span class="red">833704513946265251405968611993787771762...</span>
 },
 
 // ============================================================
+// PART IV½: BEYOND THE TALLY
+// ============================================================
+{
+  part: 'Part IV½: The Channels',
+  title: 'Cast-as-Intended: Return Codes',
+  html: `
+    <p>How does a voter know their <em>encrypted</em> ballot really contains their choice, when malware could have swapped it? The return code -- a short code printed on their card -- must be computed <span class="em">from the submitted ciphertext</span>, not merely looked up.</p>
+    <p>The voter sends the ballot <code>E1</code>, a second ciphertext <code>E2 = Enc(vote, returnCodesPK)</code>, and a <span class="em">plaintext-equality proof</span> that both encrypt the same vote:</p>
+    <div class="math-block">
+      Prove knowledge of (r&#8321;, r&#8322;) with<br>
+      &nbsp;&nbsp;&gamma;&#8321; = g<sup>r&#8321;</sup>, &nbsp; &gamma;&#8322; = g<sup>r&#8322;</sup>, &nbsp; &phi;&#8321;/&phi;&#8322; = h<sup>r&#8321;</sup>/h'<sup>r&#8322;</sup><br>
+      (the shared plaintext <em>cancels</em> in &phi;&#8321;/&phi;&#8322; &mdash; so equality is proven without revealing it)
+    </div>
+    <p>Each CC verifies this proof. Then the CCs exponentiate <code>E2</code> by their return-code keys and jointly decrypt, recovering <span class="em">vote<sup>&Sigma;k</sup></span> = the card's base <span class="em">prime<sub>sel</sub><sup>&Sigma;k</sup></span>, which maps to the short code returned to the voter.</p>
+    <div class="insight-box">Because the equality proof binds <code>E2</code> to the tallied ballot <code>E1</code>, the code reflects the vote that is actually counted. Malware that alters the vote produces a code that <em>won't match the card</em> -- and it can't forge a matching one without the control components' secrets.</div>
+  `
+},
+
+{
+  part: 'Part IV½: The Channels',
+  title: 'Transport Security: EdDSA + ECDH',
+  html: `
+    <p>Everything so far is the <em>protocol</em>. But the parties -- setup component, four control components, electoral board, voting server, voters, verifier -- run on separate machines and must authenticate every message they exchange. That's a different cryptographic layer:</p>
+    <div style="margin:12px 0;">
+      <div style="margin:8px 0;"><span class="em">Ed25519</span> &mdash; every inter-party message is signed; the receiver verifies against the sender's certificate.</div>
+      <div style="margin:8px 0;"><span class="em">X25519 (ECDH)</span> &mdash; confidential deliveries (voting cards) derive an AES-256-GCM session key from a Diffie-Hellman exchange.</div>
+      <div style="margin:8px 0;"><span class="em">Ed25519 X.509 PKI</span> &mdash; a root CA issues each party an identity certificate; no RSA anywhere.</div>
+    </div>
+    <p>In this PoC these primitives are implemented in a small <span class="em">Rust</span> crate (<code>ed25519-dalek</code>, <code>x25519-dalek</code>) and called from Go over a C ABI -- a clean separation between the hand-built protocol math and the audited, constant-time transport primitives.</p>
+    <div class="insight-box">Two independent trust arguments: the <em>protocol</em> proofs (Schnorr, Bayer-Groth) make the election publicly verifiable; the <em>transport</em> signatures make each message attributable to a specific party. Verifiability answers "is the tally correct?"; transport security answers "who said this?"</div>
+  `
+},
+
+// ============================================================
 // PART V: THE VERDICT
 // ============================================================
 {
