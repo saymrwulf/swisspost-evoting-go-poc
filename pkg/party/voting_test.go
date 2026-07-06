@@ -68,7 +68,12 @@ func (p *VoterClient) castBallotTampered(t *testing.T) (*transport.Envelope, err
 	zq := emath.ZqGroupFromGqGroup(group)
 	product := returncodes.EncodeVote([]int{0}, p.st.primes)
 	voteElem, _ := emath.NewGqElement(product, group)
-	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(voteElem)), emath.RandomZqElement(zq), singlePK(p.st.electionPK))
+	msgElems := make([]emath.GqElement, p.cer.Config.NumOptions)
+	msgElems[0] = voteElem
+	for i := 1; i < len(msgElems); i++ {
+		msgElems[i] = group.Identity()
+	}
+	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(msgElems...)), emath.RandomZqElement(zq), p.st.electionPK)
 	g := group.Generator().Value().String()
 	return p.cer.send(p.id, NameServer, MsgCastBallot, wireBallot{
 		VoterID:        p.st.card.VoterID,

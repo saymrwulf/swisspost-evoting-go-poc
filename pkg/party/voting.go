@@ -62,13 +62,20 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 	}
 	p.st.selected = selected
 
-	// 1. Encode + encrypt the vote under the election public key.
+	// 1. Encode + encrypt the vote. The message has NumOptions components (vote
+	//    product in slot 0, identity elsewhere) so the ciphertext width matches
+	//    the CC/EB key size used to decrypt during the mix-net.
 	product := returncodes.EncodeVote(selected, p.st.primes)
 	voteElem, err := emath.NewGqElement(product, group)
 	if err != nil {
 		return nil, fmt.Errorf("vote product not in group: %w", err)
 	}
-	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(voteElem)), emath.RandomZqElement(zq), singlePK(p.st.electionPK))
+	msgElems := make([]emath.GqElement, cfg.NumOptions)
+	msgElems[0] = voteElem
+	for i := 1; i < cfg.NumOptions; i++ {
+		msgElems[i] = group.Identity()
+	}
+	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(msgElems...)), emath.RandomZqElement(zq), p.st.electionPK)
 
 	// 2. Verification-card key pair.
 	p.st.vcSK = emath.RandomZqElement(zq)
@@ -97,12 +104,6 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 		ExpProof:       encodeExponentiation(expProof),
 	}
 	return p.cer.send(p.id, NameServer, MsgCastBallot, ballot)
-}
-
-// singlePK returns a single-element public key (index 0) for encrypting the vote
-// product as a one-component message.
-func singlePK(pk elgamal.PublicKey) elgamal.PublicKey {
-	return elgamal.PublicKey{Elements: emath.GqVectorOf(pk.Elements.Get(0))}
 }
 
 // handleCastBallot (server) validates a ballot's structure, asks every CC to
