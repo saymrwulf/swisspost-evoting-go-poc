@@ -275,10 +275,13 @@ func (c *Ceremony) assembleVotingCard(voterIdx int) (*votingCard, error) {
 		confirmCombined = confirmCombined.Multiply(cShare)
 	}
 
-	// Derive the short codes and register mapping-table entries.
+	// Derive the short codes and register mapping-table entries. The lCC value
+	// uses a fixed tau (not the per-option prime) so that vote-time extraction
+	// can recompute it from vote^{Σk} without knowing which option was chosen —
+	// the per-option base prime_i^{Σk} already makes the codes distinct.
 	choiceCodes := make([]string, cfg.NumOptions)
 	for i := 0; i < cfg.NumOptions; i++ {
-		lCC := returncodes.ComputeLCCValue(choiceCombined[i], vcID, cfg.ElectionID, c.Setup.st.primes[i])
+		lCC := returncodes.ComputeLCCValue(choiceCombined[i], vcID, cfg.ElectionID, tauFixed)
 		short := fmt.Sprintf("CC-%02d", i)
 		choiceCodes[i] = short
 		c.Setup.st.mappingTable.Add(lCC, short)

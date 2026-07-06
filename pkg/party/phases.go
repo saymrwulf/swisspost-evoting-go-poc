@@ -25,6 +25,10 @@ func (p *ControlComponent) handleCCMsg(env *transport.Envelope) (*transport.Enve
 		return p.handleVerifyBallot(env)
 	case MsgShuffle:
 		return p.handleShuffle(env)
+	case MsgRCExpReq:
+		return p.handleRCExp(env)
+	case MsgRCDecReq:
+		return p.handleRCDec(env)
 	default:
 		return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
 	}

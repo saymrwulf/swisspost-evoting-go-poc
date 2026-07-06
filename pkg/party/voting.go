@@ -129,7 +129,25 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 		ReturnCodeCT:   encodeCiphertext(e2),
 		EqProof:        encodePlaintextEquality(eqProof),
 	}
-	return p.cer.send(p.id, NameServer, MsgCastBallot, ballot)
+	env, err := p.cer.send(p.id, NameServer, MsgCastBallot, ballot)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cast-as-intended check: the return code the server computed from the
+	// submission must match the code printed on the card for the chosen option.
+	var resp ballotStoredResp
+	if err := transport.UnmarshalPayload(env.Payload, &resp); err != nil {
+		return nil, err
+	}
+	if len(selected) == 1 {
+		want := p.st.card.ChoiceReturnCodes[selected[0]]
+		if resp.ChoiceReturnCode != want {
+			return nil, fmt.Errorf("%s: return code mismatch — server returned %q, card expects %q (vote may have been altered)",
+				p.id.Name, resp.ChoiceReturnCode, want)
+		}
+	}
+	return env, nil
 }
 
 // handleCastBallot (server) validates a ballot's structure, asks every CC to
@@ -179,12 +197,31 @@ func (p *VotingServer) handleCastBallot(env *transport.Envelope) (*transport.Env
 		Ciphertext:         ct,
 		VcPK:               vcPK,
 	})
-	return reply(p.id, env.From, MsgBallotStored, env.Nonce, ackPayload{Party: p.id.Name, OK: true})
+
+	// Cast-as-intended: recover the return code from E2 (proven equal to the
+	// ballot) via the CCs, and send it back to the voter to check against the
+	// card. E2 was validated by decode above.
+	e2, err := b.ReturnCodeCT.decode(group)
+	if err != nil {
+		return nil, fmt.Errorf("return-code ciphertext: %w", err)
+	}
+	code, err := p.extractChoiceReturnCode(b.VcID, e2)
+	if err != nil {
+		return nil, fmt.Errorf("return-code extraction: %w", err)
+	}
+	return reply(p.id, env.From, MsgBallotStored, env.Nonce, ballotStoredResp{OK: true, ChoiceReturnCode: code})
 }
 
 type ballotVerdict struct {
 	Accept bool   `json:"accept"`
 	Reason string `json:"reason"`
+}
+
+// ballotStoredResp is the server's reply to the voter, carrying the return code
+// the CCs computed from the submitted ballot for the voter to check.
+type ballotStoredResp struct {
+	OK               bool   `json:"ok"`
+	ChoiceReturnCode string `json:"choice_return_code"`
 }
 
 // handleVerifyBallot (CC) re-derives the exponentiation-proof statement and
