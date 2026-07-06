@@ -36,9 +36,11 @@ Verify       Public audit: all proofs are independently checkable
 | `pkg/kdf` | HKDF key derivation for return code generation |
 | `pkg/symmetric` | AES-GCM authenticated encryption |
 | `pkg/returncodes` | Vote encoding as small primes, return code mapping tables |
-| `pkg/protocol` | Full election orchestration (setup, vote, confirm, tally) |
+| `pkg/protocol` | Single-process election orchestration (setup, vote, confirm, tally) |
 | `pkg/verify` | Independent verification of all proofs |
 | `pkg/transportsec` | Transport-layer security (Ed25519 signatures, X25519 ECDH) — **implemented in Rust**, linked via cgo (see below) |
+| `pkg/transport` | Authenticated message bus: Ed25519 X.509 PKI, signed envelopes, X25519 secure channels |
+| `pkg/party` | **Multi-party ceremony**: each endpoint (setup, 4 CCs, electoral board, voting server, voters, verifier) as a separate party communicating only over the signed transport |
 
 ## Transport Security in Rust
 
@@ -59,8 +61,12 @@ addition to Go. The Makefile builds the Rust library first, then the Go binary:
 make build          # cargo build --release, then go build -o evote ./cmd/evote
 make test           # runs cargo test + go test ./...
 
-# Run a complete election ceremony (10 voters, 3 candidates)
+# Run a complete election ceremony, single process (10 voters, 3 candidates)
 ./evote demo --voters 10 --options 3
+
+# Run the SAME election as separate parties over Rust-signed transport
+./evote netdemo --voters 10 --options 3
+./evote netdemo --voters 3 --options 2 --verbose   # log every signed message
 
 # Serve presentations on local network (for iPad viewing)
 ./evote serve --port 8080
@@ -68,6 +74,12 @@ make test           # runs cargo test + go test ./...
 # Theatrical step-by-step terminal walkthrough
 ./evote present
 ```
+
+The `demo` command runs the whole protocol in one process. `netdemo` runs the
+**multi-party** architecture: every party is a separate endpoint holding only its
+own private state, and every message between them is Ed25519-signed (and, for
+card/mapping-table delivery, X25519-encrypted) — all transport cryptography in
+Rust. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 If you build Go directly (`go build ./...`), run `make rust` first so the static library
 at `rust/transportsec/target/release/libtransportsec.a` exists for cgo to link.
@@ -144,8 +156,12 @@ pkg/
     kdf/                 HKDF key derivation
     symmetric/           AES-GCM
     returncodes/         Vote encoding, return code mapping
-    protocol/            Election orchestration
+    protocol/            Single-process election orchestration
     verify/              Independent proof verification
+    transportsec/        Rust FFI: Ed25519 sign/verify, X25519 ECDH
+    transport/           PKI, signed envelopes, secure channels, message bus
+    party/               Multi-party ceremony (one object per endpoint)
+rust/transportsec/       Rust crate: ed25519-dalek + x25519-dalek, C ABI
 ```
 
 ## Security Hardening (Due-Diligence Pass)

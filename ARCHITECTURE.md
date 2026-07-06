@@ -60,19 +60,65 @@ signatures, X25519 for key agreement — with **no RSA anywhere**, including the
 X.509 CA. This is a design choice for the PoC, not a claim about the production
 system.
 
-## Message inventory (implemented incrementally)
+## Message flow (implemented)
 
-Setup: CC key shares + Schnorr proofs → setup; setup → voter (card), → server
-(mapping table), → all (signed election config). Voting: voter → server (ballot);
-server → CCj (proof check); server ↔ CCj (return-code shares). Tally: server →
-CC0 (ballot box); CCj → CCj+1 (shuffle + partial decryption + proofs); CC3 → EB;
-EB → bulletin board (result + final proof). Audit: bulletin board → verifier
-(public transcript).
+Run it with `evote netdemo --verbose` to watch every signed envelope.
 
-## Deferred trust-boundary hardening folded in here
+- **Setup** — `setup → CCj: gen-cc-keys`; `CCj → setup: cc-keys` (PK + Schnorr
+  proofs, verified on receipt); `setup → EB: gen-eb-key`; `EB → setup: eb-key`.
+  Setup combines the keys and publishes them to the transcript.
+- **Cards** — for each voter, `setup → CCj: long-code-share-req`; `CCj → setup:
+  long-code-share-resp` (return-code shares from the CC's private secret). Setup
+  assembles cards and delivers them **confidentially**: `setup → voter:
+  voting-card` and `setup → server: mapping-table` (both X25519-encrypted).
+- **Voting** — `voter → server: cast-ballot`; `server → CCj: verify-ballot`;
+  `CCj → server: ballot-verdict`. Stored on unanimous acceptance (vcPK persisted).
+- **Tally** — `→ server: start-tally` (server pads the ballot box); then
+  `→ CCj: shuffle` / `CCj →: shuffled` chained through all CCs; `→ EB: final-mix`
+  / `EB →: final-done`. Each party posts its shuffle + decryption proofs to the
+  transcript.
+- **Audit** — the verifier re-checks the whole transcript (`RunVerify`): every CC
+  Schnorr proof and the full shuffle chain, from public data alone.
 
-Findings from the due-diligence pass that only matter once inputs are remote are
-addressed as parties are split: verifiers return errors instead of panicking on
-malformed peer input, group elements/proofs are re-validated on receipt, and the
-artifacts a remote verifier needs (padded mix input, per-stage decryption proofs,
-`vcPK`) are persisted into a serializable public transcript.
+### Design decision: proofs on the bulletin board, ciphertexts on the wire
+
+Fully serializing the Bayer-Groth argument tree (product / Hadamard / zero / SVP
+/ multi-exponentiation sub-arguments, each with nested vectors) as JSON for every
+CC→CC hop would be enormous. Instead — matching the real system, where control
+components publish to a public bulletin board — the **ciphertext handoffs** between
+parties cross the signed transport (and are re-validated as G_q members on
+decode), while the **zero-knowledge proofs** are posted to the public transcript
+that the verifier independently re-checks. The vote data itself always crosses
+the authenticated channel; the proofs live on the board, exactly where an auditor
+reads them.
+
+## Trust-boundary hardening folded in here
+
+Findings from the due-diligence pass that only bite once inputs are remote are
+addressed in the party layer:
+
+- **M4** (unvalidated deserialization): every crypto object is decoded through
+  `NewGqElement`/`NewZqElement` at the wire boundary (`pkg/party/wire.go`), so a
+  peer cannot inject a non-residue or out-of-range value.
+- **F6** (`vcPK` not persisted): the ballot carries `vcPK`, stored in the ballot
+  box, so the exponentiation-proof statement is reconstructible by any party.
+- **F7 / F8** (padding / partial decryptions not persisted): the padded mix input
+  and every per-stage partial decryption are published to the transcript, and the
+  verifier checks the shuffle chain against exactly those.
+- **F12** (panic on malformed plaintext): tally uses `DecodeVoteChecked`, so a
+  ballot that does not decode is spoiled, not fatal; handlers reject malformed
+  messages cleanly rather than panicking.
+
+### Honest scope limits
+
+- **F5** (the unsound plaintext-equality proof) is *not* reimplemented. The
+  multi-party ballot uses only the **sound exponentiation proof** binding the
+  ballot to `vcPK`; the return-code path that encrypts partial choice codes under
+  the return-codes key (E2 / plaintext-equality) is omitted.
+- Consistent with the original system (finding F16), the **cast-as-intended**
+  return codes are derived deterministically from CC shares rather than
+  homomorphically over the submitted ciphertext. The return-code *mechanism*
+  (per-CC shares combined into a mapping-table lookup) is real and consistent
+  across card generation and would-be extraction (fixing the old derivation
+  mismatch, F1); the property that the shown code is computed *from the actual
+  ballot* remains simulated.
