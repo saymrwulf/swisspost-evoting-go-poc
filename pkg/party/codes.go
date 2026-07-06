@@ -64,8 +64,15 @@ func (p *ControlComponent) handleLongCodeShare(env *transport.Envelope) (*transp
 		if !ok {
 			return nil, fmt.Errorf("cc%d: invalid prime %q", p.index, ps)
 		}
-		hpCC := hash.HashAndSquare(prime, group)
-		choiceShares[i] = hpCC.Exponentiate(kChoice).Value().String()
+		// Base is the encoding prime itself (a G_q element), NOT a hash of it:
+		// this keeps the code base algebraic so the CCs can recompute prime^k
+		// homomorphically from the submitted ciphertext at vote time
+		// (cast-as-intended). The combined card code is prime_i^{Σ_j k_j}.
+		base, err := emath.NewGqElement(prime, group)
+		if err != nil {
+			return nil, fmt.Errorf("cc%d: prime %d not in group: %w", p.index, i, err)
+		}
+		choiceShares[i] = base.Exponentiate(kChoice).Value().String()
 	}
 
 	// Confirmation-code share, keyed off a per-voter confirmation key.
