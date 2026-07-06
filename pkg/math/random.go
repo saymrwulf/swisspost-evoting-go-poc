@@ -5,15 +5,13 @@ import (
 	"math/big"
 )
 
-// RandomZqElement generates a random element in Z_q.
+// RandomZqElement generates a uniform random element in Z_q = [0, q).
 func RandomZqElement(group *ZqGroup) ZqElement {
-	for {
-		r, err := rand.Int(rand.Reader, group.q)
-		if err != nil {
-			panic("crypto/rand failed: " + err.Error())
-		}
-		return ZqElement{value: r, group: group}
+	r, err := rand.Int(rand.Reader, group.q)
+	if err != nil {
+		panic("crypto/rand failed: " + err.Error())
 	}
+	return ZqElement{value: r, group: group}
 }
 
 // RandomZqVector generates a vector of n random elements in Z_q.
@@ -25,19 +23,17 @@ func RandomZqVector(n int, group *ZqGroup) *ZqVector {
 	return &ZqVector{elements: elements, group: group}
 }
 
-// RandomGqElement generates a random element in G_q by squaring a random value.
+// RandomGqElement generates a uniform random element in G_q by squaring a
+// random square root drawn from the canonical half [1, q].
 func RandomGqElement(group *GqGroup) GqElement {
-	for {
-		// Generate random value in [1, q)
-		r, err := rand.Int(rand.Reader, new(big.Int).Sub(group.q, big.NewInt(1)))
-		if err != nil {
-			panic("crypto/rand failed: " + err.Error())
-		}
-		r.Add(r, big.NewInt(1)) // Shift to [1, q)
-		// Square to get quadratic residue
-		squared := new(big.Int).Exp(r, big.NewInt(2), group.p)
-		return GqElement{value: squared, group: group}
+	// rand.Int yields [0, q); shift to the canonical root range [1, q].
+	r, err := rand.Int(rand.Reader, group.q)
+	if err != nil {
+		panic("crypto/rand failed: " + err.Error())
 	}
+	r.Add(r, big.NewInt(1))
+	squared := new(big.Int).Exp(r, big.NewInt(2), group.p)
+	return GqElement{value: squared, group: group}
 }
 
 // RandomBigInt generates a random big.Int in [0, max).

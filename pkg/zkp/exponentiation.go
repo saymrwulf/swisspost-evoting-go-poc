@@ -1,8 +1,6 @@
 package zkp
 
 import (
-	"math/big"
-
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
 )
@@ -63,11 +61,8 @@ func exponentiationChallenge(group *emath.GqGroup, bases, exponentiations, commi
 	// h_aux
 	hAux := buildAuxHash("ExponentiationProof", auxInfo)
 
-	// Hash
-	hashBytes := hash.RecursiveHash(f, y, c, hAux)
-
-	eVal := new(big.Int).SetBytes(hashBytes)
-	eVal.Mod(eVal, zqGroup.Q())
+	// Uniform Z_q challenge via oversample-then-reduce (Swiss Post spec).
+	eVal := hash.RecursiveHashToZq(zqGroup.Q(), f, y, c, hAux)
 	e, _ := emath.NewZqElement(eVal, zqGroup)
 	return e
 }

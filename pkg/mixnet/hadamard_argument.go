@@ -16,12 +16,12 @@ type HadamardArgument struct {
 
 // GenHadamardArgument generates a Hadamard argument.
 func GenHadamardArgument(
-	cA *emath.GqVector,  // Commitments to A columns (size m)
-	cb emath.GqElement,  // Commitment to b (Hadamard product)
-	A *emath.ZqMatrix,   // n×m matrix
-	b *emath.ZqVector,   // Hadamard product (size n)
-	r *emath.ZqVector,   // Randomness for A columns (size m)
-	s emath.ZqElement,   // Randomness for cb
+	cA *emath.GqVector, // Commitments to A columns (size m)
+	cb emath.GqElement, // Commitment to b (Hadamard product)
+	A *emath.ZqMatrix, // n×m matrix
+	b *emath.ZqVector, // Hadamard product (size n)
+	r *emath.ZqVector, // Randomness for A columns (size m)
+	s emath.ZqElement, // Randomness for cb
 	pk elgamal.PublicKey, // Public key (needed for Fiat-Shamir hash)
 	ck CommitmentKey,
 	group *emath.GqGroup,

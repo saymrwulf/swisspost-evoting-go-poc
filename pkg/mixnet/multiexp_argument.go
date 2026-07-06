@@ -10,24 +10,24 @@ import (
 
 // MultiExponentiationArgument proves a multi-exponentiation relationship.
 type MultiExponentiationArgument struct {
-	CA0  emath.GqElement          // Commitment to a_0
-	CB   *emath.GqVector          // Commitments to b vector (size 2m)
-	E    *elgamal.CiphertextVector // Ciphertexts E (size 2m)
-	A    *emath.ZqVector          // Aggregated a vector
-	R    emath.ZqElement          // Aggregated randomness for commitments
-	B    emath.ZqElement          // Aggregated b value
-	S    emath.ZqElement          // Aggregated randomness for b commitments
-	Tau  emath.ZqElement          // Aggregated re-encryption randomness
+	CA0 emath.GqElement           // Commitment to a_0
+	CB  *emath.GqVector           // Commitments to b vector (size 2m)
+	E   *elgamal.CiphertextVector // Ciphertexts E (size 2m)
+	A   *emath.ZqVector           // Aggregated a vector
+	R   emath.ZqElement           // Aggregated randomness for commitments
+	B   emath.ZqElement           // Aggregated b value
+	S   emath.ZqElement           // Aggregated randomness for b commitments
+	Tau emath.ZqElement           // Aggregated re-encryption randomness
 }
 
 // GenMultiExponentiationArgument generates a multi-exponentiation argument.
 func GenMultiExponentiationArgument(
 	cMatrix []*elgamal.CiphertextVector, // m ciphertext rows, each of size n
-	cTarget elgamal.Ciphertext,          // Target ciphertext
-	cA *emath.GqVector,                  // Commitments to A columns (size m)
-	A *emath.ZqMatrix,                   // n×m matrix (exponents)
-	r *emath.ZqVector,                   // Randomness for A commitments
-	rho emath.ZqElement,                 // Re-encryption randomness
+	cTarget elgamal.Ciphertext, // Target ciphertext
+	cA *emath.GqVector, // Commitments to A columns (size m)
+	A *emath.ZqMatrix, // n×m matrix (exponents)
+	r *emath.ZqVector, // Randomness for A commitments
+	rho emath.ZqElement, // Re-encryption randomness
 	pk elgamal.PublicKey,
 	ck CommitmentKey,
 	group *emath.GqGroup,
@@ -177,10 +177,11 @@ func VerifyMultiExponentiationArgument(
 	x := multiExpChallenge(group, pk, &ck, cMatrix, cTarget, cA, arg.CA0, arg.CB, arg.E)
 	xPowers := computeXPowers(x, 2*m+1, zqGroup)
 
-	// Check 1: c_B[m] is identity commitment
+	// Check 1: c_B[m] must be the identity, i.e. commit(0; 0). This pins
+	// b_m = 0 so the extracted relation has no Enc(g^{b_m}) slack; without
+	// it a malicious prover can shift the target ciphertext arbitrarily.
 	if !arg.CB.Get(m).IsIdentity() {
-		// Actually need to check it commits to 0
-		// For now skip this precise check
+		return false
 	}
 
 	// Check 2: Π c_A[:,i]^{x^i} * c_A_0 = commit(a, r)

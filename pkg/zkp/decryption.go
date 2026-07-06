@@ -1,8 +1,6 @@
 package zkp
 
 import (
-	"math/big"
-
 	"github.com/user/evote/pkg/elgamal"
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
@@ -173,9 +171,8 @@ func decryptionChallenge(group *emath.GqGroup, gamma emath.GqElement, statement,
 	}
 	hAux := hash.HashableList{Elements: auxElements}
 
-	hashBytes := hash.RecursiveHash(f, yHash, cHash, hAux)
-	eVal := new(big.Int).SetBytes(hashBytes)
-	eVal.Mod(eVal, zqGroup.Q())
+	// Uniform Z_q challenge via oversample-then-reduce (Swiss Post spec).
+	eVal := hash.RecursiveHashToZq(zqGroup.Q(), f, yHash, cHash, hAux)
 	e, _ := emath.NewZqElement(eVal, zqGroup)
 	return e
 }

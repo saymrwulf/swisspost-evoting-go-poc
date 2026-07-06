@@ -4,18 +4,18 @@ import (
 	"math/big"
 
 	"github.com/user/evote/pkg/elgamal"
+	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/mixnet"
 	"github.com/user/evote/pkg/returncodes"
 	"github.com/user/evote/pkg/zkp"
-	emath "github.com/user/evote/pkg/math"
 )
 
 // ControlComponent represents one of the 4 control components.
 type ControlComponent struct {
-	ID                int
-	ElectionKeyPair   elgamal.KeyPair
-	ReturnCodeSecret  emath.ZqElement
-	SchnorrProofs     []zkp.SchnorrProof
+	ID               int
+	ElectionKeyPair  elgamal.KeyPair
+	ReturnCodeSecret emath.ZqElement
+	SchnorrProofs    []zkp.SchnorrProof
 }
 
 // ElectoralBoard holds the electoral board's key material.
@@ -29,10 +29,10 @@ type ElectoralBoard struct {
 type VotingCard struct {
 	VoterID            string
 	VerificationCardID string
-	StartVotingKey     string // SVK for authentication
+	StartVotingKey     string   // SVK for authentication
 	ChoiceReturnCodes  []string // Expected choice return codes
-	VoteConfirmCode    string // Expected vote cast return code
-	BallotCastingKey   string // BCK for confirmation
+	VoteConfirmCode    string   // Expected vote cast return code
+	BallotCastingKey   string   // BCK for confirmation
 }
 
 // EncryptedVote holds a voter's encrypted ballot and proofs.
@@ -53,20 +53,22 @@ type BallotBox struct {
 
 // ElectionEvent holds the entire election state.
 type ElectionEvent struct {
-	Config         *Config
-	CCs            []*ControlComponent
-	EB             *ElectoralBoard
-	ElectionPK     elgamal.PublicKey    // Combined election public key
-	ReturnCodesPK  elgamal.PublicKey    // Combined return codes public key
-	Primes         []*big.Int           // Small primes for vote encoding
-	VotingCards    []*VotingCard
-	BallotBox      *BallotBox
-	MappingTable   *returncodes.MappingTable
+	Config        *Config
+	CCs           []*ControlComponent
+	EB            *ElectoralBoard
+	ElectionPK    elgamal.PublicKey // Combined election public key
+	ReturnCodesPK elgamal.PublicKey // Combined return codes public key
+	Primes        []*big.Int        // Small primes for vote encoding
+	VotingCards   []*VotingCard
+	BallotBox     *BallotBox
+	MappingTable  *returncodes.MappingTable
 	// Tally results
-	ShuffleResults       []mixnet.VerifiableShuffle
-	PartiallyDecrypted   []*elgamal.CiphertextVector // Partially decrypted ciphertexts after each CC
-	DecryptedVotes       []*emath.GqVector
-	FinalResult          map[int]int // option index → vote count
+	MixInput           *elgamal.CiphertextVector // Padded ballot ciphertexts fed to shuffle 0 (persisted so the verifier uses the SAME padding)
+	ShuffleResults     []mixnet.VerifiableShuffle
+	PartiallyDecrypted []*elgamal.CiphertextVector // Partially decrypted ciphertexts after each CC
+	DecryptionProofs   [][]zkp.DecryptionProof     // Per-CC decryption proofs (one slice per shuffle stage)
+	DecryptedVotes     []*emath.GqVector
+	FinalResult        map[int]int // option index → vote count
 }
 
 // NewBallotBox creates an empty ballot box.

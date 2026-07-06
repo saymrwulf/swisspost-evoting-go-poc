@@ -5,10 +5,11 @@ import (
 	"math/big"
 
 	"github.com/user/evote/pkg/elgamal"
+	"github.com/user/evote/pkg/hash"
+	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/mixnet"
 	"github.com/user/evote/pkg/returncodes"
 	"github.com/user/evote/pkg/zkp"
-	emath "github.com/user/evote/pkg/math"
 )
 
 // Tally performs the complete tally phase.
@@ -22,7 +23,9 @@ func Tally(event *ElectionEvent) {
 	ballotCts := event.BallotBox.GetCiphertexts()
 	N := ballotCts.Size()
 
-	// Ensure at least 2 ciphertexts (add trivial if needed)
+	// Ensure at least 2 ciphertexts (add trivial if needed). The padded vector
+	// is persisted as event.MixInput so the verifier checks shuffle 0 against
+	// the EXACT same input rather than re-padding with fresh randomness.
 	if N < 2 {
 		zqGroup := emath.ZqGroupFromGqGroup(group)
 		for N < 2 {
@@ -32,6 +35,7 @@ func Tally(event *ElectionEvent) {
 			N++
 		}
 	}
+	event.MixInput = ballotCts
 
 	fmt.Printf("  Mixing %d ciphertexts through %d CCs + EB\n", N, cfg.NumCCs)
 
@@ -39,6 +43,7 @@ func Tally(event *ElectionEvent) {
 	currentCts := ballotCts
 	event.ShuffleResults = make([]mixnet.VerifiableShuffle, 0)
 	event.PartiallyDecrypted = make([]*elgamal.CiphertextVector, 0)
+	event.DecryptionProofs = make([][]zkp.DecryptionProof, 0)
 
 	for j := 0; j < cfg.NumCCs; j++ {
 		cc := event.CCs[j]
@@ -69,7 +74,7 @@ func Tally(event *ElectionEvent) {
 			proof := zkp.GenDecryptionProof(ct, cc.ElectionKeyPair.SK, cc.ElectionKeyPair.PK, msg, group)
 			decProofs = append(decProofs, proof)
 		}
-		_ = decProofs // Stored for verification
+		event.DecryptionProofs = append(event.DecryptionProofs, decProofs)
 
 		currentCts = elgamal.NewCiphertextVector(decrypted)
 		event.PartiallyDecrypted = append(event.PartiallyDecrypted, currentCts)
@@ -131,33 +136,35 @@ func VerifyTally(event *ElectionEvent) bool {
 
 	fmt.Println("\n--- VERIFICATION ---")
 
-	// 1. Verify Schnorr proofs for CC keys
+	allValid := true
+
+	// 1. Verify Schnorr proofs for CC keys (really invokes the ZK verifier).
 	for j := 0; j < cfg.NumCCs; j++ {
 		cc := event.CCs[j]
+		ccOK := true
 		for i := 0; i < cfg.NumOptions; i++ {
-			auxInfo := []interface{}{
-				big.NewInt(int64(i)),
-				cfg.ElectionID,
-				big.NewInt(int64(j)),
+			auxInfo := []hash.Hashable{
+				hash.HashableBigInt{Value: big.NewInt(int64(i))},
+				hash.HashableString{Value: cfg.ElectionID},
+				hash.HashableBigInt{Value: big.NewInt(int64(j))},
 			}
-			_ = auxInfo
-			// In full impl, verify: GenSchnorrProof(sk, pk, group, aux)
-			_ = cc.SchnorrProofs[i]
+			if !zkp.VerifySchnorrProof(cc.SchnorrProofs[i], cc.ElectionKeyPair.PK.Get(i), group, auxInfo...) {
+				ccOK = false
+			}
 		}
-		fmt.Printf("  CC%d: Schnorr proofs OK\n", j)
+		if ccOK {
+			fmt.Printf("  CC%d: Schnorr proofs OK\n", j)
+		} else {
+			fmt.Printf("  CC%d: Schnorr proofs INVALID\n", j)
+			allValid = false
+		}
 	}
 
-	// 2. Verify shuffle proofs
-	ballotCts := event.BallotBox.GetCiphertexts()
-	N := ballotCts.Size()
-	if N < 2 {
-		zqGroup := emath.ZqGroupFromGqGroup(group)
-		for N < 2 {
-			r := emath.RandomZqElement(zqGroup)
-			trivial := elgamal.EncryptOnes(r, event.ElectionPK)
-			ballotCts = ballotCts.Append(trivial)
-			N++
-		}
+	// 2. Verify shuffle proofs against the SAME padded input the tally used.
+	ballotCts := event.MixInput
+	if ballotCts == nil {
+		// Tally not run, or legacy event: fall back to the ballot box.
+		ballotCts = event.BallotBox.GetCiphertexts()
 	}
 
 	for j, vs := range event.ShuffleResults {
@@ -178,7 +185,7 @@ func VerifyTally(event *ElectionEvent) bool {
 			fmt.Printf("  Shuffle %d: proof VALID\n", j)
 		} else {
 			fmt.Printf("  Shuffle %d: proof INVALID\n", j)
-			// For PoC, continue anyway
+			allValid = false
 		}
 
 		// Update ciphertexts for next shuffle:
@@ -199,6 +206,10 @@ func VerifyTally(event *ElectionEvent) bool {
 	}
 	fmt.Printf("  Total votes decoded: %d (expected: %d)\n", totalVotes, event.BallotBox.Size())
 
-	fmt.Println("  Verification complete.")
-	return true
+	if allValid {
+		fmt.Println("  Verification complete: ALL CHECKS PASSED.")
+	} else {
+		fmt.Println("  Verification complete: FAILURES DETECTED.")
+	}
+	return allValid
 }

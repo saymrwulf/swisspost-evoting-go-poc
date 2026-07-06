@@ -5,5 +5,8 @@
 # Test artifacts
 testdata/*.json
 
+# Rust build artifacts (the static lib is rebuilt via `make rust` / `cargo build`)
+rust/**/target/
+
 # macOS
 .DS_Store

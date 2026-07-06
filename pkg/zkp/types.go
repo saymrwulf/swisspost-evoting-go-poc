@@ -21,14 +21,14 @@ type ExponentiationProof struct {
 // PlaintextEqualityProof proves two ciphertexts encrypt the same plaintext
 // under different keys.
 type PlaintextEqualityProof struct {
-	E emath.ZqElement  // Hash challenge
-	Z *emath.ZqVector  // Response vector (size 2)
+	E emath.ZqElement // Hash challenge
+	Z *emath.ZqVector // Response vector (size 2)
 }
 
 // DecryptionProof proves correct decryption of an ElGamal ciphertext.
 type DecryptionProof struct {
-	E emath.ZqElement  // Hash challenge
-	Z *emath.ZqVector  // Response vector (size l)
+	E emath.ZqElement // Hash challenge
+	Z *emath.ZqVector // Response vector (size l)
 }
 
 // VerifiableDecryptions holds a set of decrypted messages with proofs.

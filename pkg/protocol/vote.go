@@ -6,9 +6,9 @@ import (
 
 	"github.com/user/evote/pkg/elgamal"
 	"github.com/user/evote/pkg/hash"
+	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/returncodes"
 	"github.com/user/evote/pkg/zkp"
-	emath "github.com/user/evote/pkg/math"
 )
 
 // CastVote simulates a voter casting a vote.

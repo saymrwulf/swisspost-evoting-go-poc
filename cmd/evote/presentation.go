@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/user/evote/pkg/elgamal"
 	"github.com/user/evote/pkg/hash"
+	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/mixnet"
+	"github.com/user/evote/pkg/protocol"
 	"github.com/user/evote/pkg/returncodes"
 	"github.com/user/evote/pkg/zkp"
-	emath "github.com/user/evote/pkg/math"
-	"github.com/user/evote/pkg/protocol"
 )
 
 var presentCmd = &cobra.Command{

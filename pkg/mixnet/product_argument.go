@@ -9,17 +9,17 @@ import (
 
 // ProductArgument proves that the product of all elements in a committed matrix equals b.
 type ProductArgument struct {
-	CB       *emath.GqElement              // Commitment to Hadamard product (nil if m=1)
-	Hadamard *HadamardArgument             // nil if m=1
-	SVP      SingleValueProductArgument    // Always present
+	CB       *emath.GqElement           // Commitment to Hadamard product (nil if m=1)
+	Hadamard *HadamardArgument          // nil if m=1
+	SVP      SingleValueProductArgument // Always present
 }
 
 // GenProductArgument generates a product argument.
 func GenProductArgument(
-	cA *emath.GqVector,  // Commitments to A columns (size m)
-	b emath.ZqElement,   // Product b = Π A[i,j]
-	A *emath.ZqMatrix,   // n×m matrix
-	r *emath.ZqVector,   // Randomness for A columns
+	cA *emath.GqVector, // Commitments to A columns (size m)
+	b emath.ZqElement, // Product b = Π A[i,j]
+	A *emath.ZqMatrix, // n×m matrix
+	r *emath.ZqVector, // Randomness for A columns
 	pk elgamal.PublicKey, // Public key (needed for sub-argument hashes)
 	ck CommitmentKey,
 	group *emath.GqGroup,

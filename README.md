@@ -38,11 +38,26 @@ Verify       Public audit: all proofs are independently checkable
 | `pkg/returncodes` | Vote encoding as small primes, return code mapping tables |
 | `pkg/protocol` | Full election orchestration (setup, vote, confirm, tally) |
 | `pkg/verify` | Independent verification of all proofs |
+| `pkg/transportsec` | Transport-layer security (Ed25519 signatures, X25519 ECDH) — **implemented in Rust**, linked via cgo (see below) |
+
+## Transport Security in Rust
+
+Channel security between parties uses **Ed25519** signatures and **X25519 (ECDH)** key
+agreement — deliberately elliptic-curve, with **no RSA anywhere**. These primitives are
+implemented in Rust (`rust/transportsec`, using `ed25519-dalek` and `x25519-dalek`),
+compiled to a C-ABI static library, and called from Go through cgo (`pkg/transportsec`).
+The Go side never implements or duplicates this cryptography. A cross-language conformance
+test proves the Rust signatures are standard RFC 8032 Ed25519 (Go's `crypto/ed25519`
+verifies them and vice-versa).
 
 ## Quick Start
 
+Building requires a **Rust toolchain** (for the transport-security static library) in
+addition to Go. The Makefile builds the Rust library first, then the Go binary:
+
 ```bash
-go build -o evote ./cmd/evote
+make build          # cargo build --release, then go build -o evote ./cmd/evote
+make test           # runs cargo test + go test ./...
 
 # Run a complete election ceremony (10 voters, 3 candidates)
 ./evote demo --voters 10 --options 3
@@ -53,6 +68,9 @@ go build -o evote ./cmd/evote
 # Theatrical step-by-step terminal walkthrough
 ./evote present
 ```
+
+If you build Go directly (`go build ./...`), run `make rust` first so the static library
+at `rust/transportsec/target/release/libtransportsec.a` exists for cgo to link.
 
 ## Demo Output
 
@@ -129,6 +147,26 @@ pkg/
     protocol/            Election orchestration
     verify/              Independent proof verification
 ```
+
+## Security Hardening (Due-Diligence Pass)
+
+A full correctness/security review of the codebase produced the following fixes,
+each covered by a regression test:
+
+| Area | Issue | Fix |
+|------|-------|-----|
+| `pkg/mixnet` | The multi-exponentiation verifier's `c_{B_m} = commit(0;0)` check was stubbed out (empty `if`), letting a malicious mixer prove a **non-permutation** shuffle | Check enforced; honest shuffles still verify |
+| `pkg/zkp` | All four Fiat–Shamir challenges were `hash mod q` — biased, and capped at 256 bits for production groups | Switched to spec-correct `RecursiveHashToZq` (oversample-then-reduce) |
+| `pkg/protocol` | `VerifyTally` returned `true` unconditionally; Schnorr proofs were never actually verified | Real `zkp.VerifySchnorrProof` calls; returns the true aggregate result |
+| `pkg/protocol` | Mix padding for N<2 was regenerated with fresh randomness at verify time → shuffle 0 always failed | Padded input persisted as `event.MixInput` and reused by the verifier |
+| `pkg/kdf` | `BuildKDFInfo` concatenated parts without separators (`("e1","23x")` == `("e12","3x")`) | Length-prefixed, injective encoding |
+| `pkg/math` | `GqElementFromSquareRoot` rejected the valid root `q` (off-by-one), a latent panic; `RandomGqElement` skipped one element | Range corrected to `[1, q]` |
+| `cmd/evote` | `--options=0` / `--voters=-1` panicked | Validated flags return clean errors |
+| everywhere | `math/rand` used in the demo driver | Replaced with `crypto/rand` |
+
+Trust-boundary hardening (validated deserialization, verifiers returning `false`
+rather than panicking on malformed peer input) is handled in the multi-party
+re-architecture, where inputs actually arrive over the wire.
 
 ## References
 

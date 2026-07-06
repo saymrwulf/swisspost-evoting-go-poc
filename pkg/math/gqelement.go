@@ -24,13 +24,16 @@ func NewGqElement(value *big.Int, group *GqGroup) (GqElement, error) {
 }
 
 // GqElementFromSquareRoot creates a GqElement by squaring a value, guaranteeing group membership.
-// The input element must be in [1, q).
+// The input element must be in [1, q]. This is the canonical square-root half:
+// for a safe prime p = 2q+1, the roots r and p-r yield the same square, and
+// [1, q] contains exactly one root of every quadratic residue (note q itself is
+// valid — omitting it, as an earlier off-by-one did, makes h+1 == q panic).
 func GqElementFromSquareRoot(element *big.Int, group *GqGroup) (GqElement, error) {
 	if element == nil || group == nil {
 		return GqElement{}, fmt.Errorf("element and group must not be nil")
 	}
-	if element.Sign() < 1 || element.Cmp(group.q) >= 0 {
-		return GqElement{}, fmt.Errorf("element must be in [1, q)")
+	if element.Sign() < 1 || element.Cmp(group.q) > 0 {
+		return GqElement{}, fmt.Errorf("element must be in [1, q]")
 	}
 	// element^2 mod p is guaranteed to be a quadratic residue
 	squared := new(big.Int).Exp(element, big.NewInt(2), group.p)

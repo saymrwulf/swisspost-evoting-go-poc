@@ -10,9 +10,9 @@ import (
 
 // ZeroArgument is a proof that Σ_i a_i ★ b_{i-1} = 0 for committed matrices A, B.
 type ZeroArgument struct {
-	CA0  emath.GqElement  // Commitment to a_0 (prepended column)
-	CBm  emath.GqElement  // Commitment to b_m (appended column)
-	CD   *emath.GqVector  // Commitments to diagonal d vector (size 2m+1)
+	CA0    emath.GqElement // Commitment to a_0 (prepended column)
+	CBm    emath.GqElement // Commitment to b_m (appended column)
+	CD     *emath.GqVector // Commitments to diagonal d vector (size 2m+1)
 	APrime *emath.ZqVector // Aggregated a' vector
 	BPrime *emath.ZqVector // Aggregated b' vector
 	RPrime emath.ZqElement // Aggregated randomness for A
@@ -24,11 +24,11 @@ type ZeroArgument struct {
 func GenZeroArgument(
 	cA *emath.GqVector, // Commitments to A columns (size m)
 	cB *emath.GqVector, // Commitments to B columns (size m)
-	A *emath.ZqMatrix,  // n×m matrix
-	B *emath.ZqMatrix,  // n×m matrix
-	r *emath.ZqVector,  // Randomness for A (size m)
-	s *emath.ZqVector,  // Randomness for B (size m)
-	y emath.ZqElement,  // Star map parameter
+	A *emath.ZqMatrix, // n×m matrix
+	B *emath.ZqMatrix, // n×m matrix
+	r *emath.ZqVector, // Randomness for A (size m)
+	s *emath.ZqVector, // Randomness for B (size m)
+	y emath.ZqElement, // Star map parameter
 	pk elgamal.PublicKey, // Public key (needed for Fiat-Shamir hash)
 	ck CommitmentKey,
 	group *emath.GqGroup,

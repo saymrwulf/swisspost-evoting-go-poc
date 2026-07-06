@@ -23,7 +23,7 @@ type HashableBytes struct {
 	Data []byte
 }
 
-func (h HashableBytes) hashableTag() byte      { return TagBytes }
+func (h HashableBytes) hashableTag() byte         { return TagBytes }
 func (h HashableBytes) hashableData() interface{} { return h.Data }
 
 // HashableBigInt wraps a non-negative big.Int.
@@ -31,7 +31,7 @@ type HashableBigInt struct {
 	Value *big.Int
 }
 
-func (h HashableBigInt) hashableTag() byte      { return TagBigInt }
+func (h HashableBigInt) hashableTag() byte         { return TagBigInt }
 func (h HashableBigInt) hashableData() interface{} { return h.Value }
 
 // HashableString wraps a string.
@@ -39,7 +39,7 @@ type HashableString struct {
 	Value string
 }
 
-func (h HashableString) hashableTag() byte      { return TagString }
+func (h HashableString) hashableTag() byte         { return TagString }
 func (h HashableString) hashableData() interface{} { return h.Value }
 
 // HashableList wraps a list of Hashable values.
@@ -47,7 +47,7 @@ type HashableList struct {
 	Elements []Hashable
 }
 
-func (h HashableList) hashableTag() byte      { return TagList }
+func (h HashableList) hashableTag() byte         { return TagList }
 func (h HashableList) hashableData() interface{} { return h.Elements }
 
 // RawBigIntToHashable converts big.Int to HashableBigInt.

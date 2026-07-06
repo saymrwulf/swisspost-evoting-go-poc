@@ -7,9 +7,9 @@ import (
 	"github.com/user/evote/pkg/elgamal"
 	"github.com/user/evote/pkg/hash"
 	"github.com/user/evote/pkg/kdf"
+	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/returncodes"
 	"github.com/user/evote/pkg/zkp"
-	emath "github.com/user/evote/pkg/math"
 )
 
 // Setup performs the complete setup phase of the election.

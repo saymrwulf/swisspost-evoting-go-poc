@@ -10,21 +10,21 @@ import (
 
 // SingleValueProductArgument proves that the product of committed vector elements equals b.
 type SingleValueProductArgument struct {
-	CD     emath.GqElement  // Commitment to d
-	CDelta emath.GqElement  // Commitment to delta'
+	CD        emath.GqElement // Commitment to d
+	CDelta    emath.GqElement // Commitment to delta'
 	CCapDelta emath.GqElement // Commitment to Δ
-	ATilde *emath.ZqVector  // Aggregated a
-	BTilde *emath.ZqVector  // Aggregated partial products
-	RTilde emath.ZqElement  // Aggregated randomness
-	STilde emath.ZqElement  // Aggregated randomness
+	ATilde    *emath.ZqVector // Aggregated a
+	BTilde    *emath.ZqVector // Aggregated partial products
+	RTilde    emath.ZqElement // Aggregated randomness
+	STilde    emath.ZqElement // Aggregated randomness
 }
 
 // GenSingleValueProductArgument generates an SVP argument.
 func GenSingleValueProductArgument(
-	ca emath.GqElement,  // Commitment to a
-	b emath.ZqElement,   // Product b = Π a_i
-	a *emath.ZqVector,   // Vector a
-	r emath.ZqElement,   // Randomness for ca
+	ca emath.GqElement, // Commitment to a
+	b emath.ZqElement, // Product b = Π a_i
+	a *emath.ZqVector, // Vector a
+	r emath.ZqElement, // Randomness for ca
 	pk elgamal.PublicKey, // Public key (needed for Fiat-Shamir hash)
 	ck CommitmentKey,
 	group *emath.GqGroup,
@@ -62,7 +62,7 @@ func GenSingleValueProductArgument(
 
 	capDeltaElems := make([]emath.ZqElement, n)
 	for k := 0; k < n-1; k++ {
-		capDeltaElems[k] = delta.Get(k+1).Subtract(a.Get(k+1).Multiply(delta.Get(k))).Subtract(bPartial[k].Multiply(d.Get(k + 1)))
+		capDeltaElems[k] = delta.Get(k + 1).Subtract(a.Get(k + 1).Multiply(delta.Get(k))).Subtract(bPartial[k].Multiply(d.Get(k + 1)))
 	}
 	capDeltaElems[n-1] = zero
 
@@ -132,7 +132,7 @@ func VerifySingleValueProductArgument(
 	zero, _ := emath.NewZqElement(big.NewInt(0), zqGroup)
 	eVec := make([]emath.ZqElement, n)
 	for k := 0; k < n-1; k++ {
-		eVec[k] = x.Multiply(arg.BTilde.Get(k+1)).Subtract(arg.BTilde.Get(k).Multiply(arg.ATilde.Get(k + 1)))
+		eVec[k] = x.Multiply(arg.BTilde.Get(k + 1)).Subtract(arg.BTilde.Get(k).Multiply(arg.ATilde.Get(k + 1)))
 	}
 	eVec[n-1] = zero
 

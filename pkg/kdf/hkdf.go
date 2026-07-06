@@ -2,6 +2,7 @@ package kdf
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"io"
 	"math/big"
 
@@ -43,9 +44,15 @@ func KDFToZqElement(prk []byte, info []byte, group *emath.ZqGroup) emath.ZqEleme
 }
 
 // BuildKDFInfo builds a KDF info string from label and context parts.
+// Each part is length-prefixed (4-byte big-endian) so the encoding is
+// injective: distinct part tuples can never collide into the same info
+// string (e.g. ("e1","23x") and ("e12","3x") must derive different keys).
 func BuildKDFInfo(parts ...string) []byte {
 	var info []byte
+	var lenBuf [4]byte
 	for _, p := range parts {
+		binary.BigEndian.PutUint32(lenBuf[:], uint32(len(p)))
+		info = append(info, lenBuf[:]...)
 		info = append(info, []byte(p)...)
 	}
 	return info

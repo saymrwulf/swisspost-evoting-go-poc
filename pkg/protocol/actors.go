@@ -2,8 +2,12 @@ package protocol
 
 import (
 	"fmt"
-	"math/rand"
+	"math/big"
+
+	emath "github.com/user/evote/pkg/math"
 )
+
+func bigIntN(n int) *big.Int { return big.NewInt(int64(n)) }
 
 // RunDemoElection runs a complete election ceremony with the given parameters.
 func RunDemoElection(numVoters, numOptions int) {
@@ -25,8 +29,8 @@ func RunDemoElection(numVoters, numOptions int) {
 	// Phase 2: Voting
 	fmt.Println("\n--- VOTING PHASE ---")
 	for v := 0; v < numVoters; v++ {
-		// Randomly select 1 option for each voter
-		selected := []int{rand.Intn(numOptions)}
+		// Randomly select 1 option for each voter (CSPRNG; simulation only).
+		selected := []int{int(emath.RandomBigInt(bigIntN(numOptions)).Int64())}
 		CastVote(event, v, selected)
 	}
 	fmt.Printf("  All %d votes cast.\n", numVoters)

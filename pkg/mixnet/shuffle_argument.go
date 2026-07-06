@@ -10,18 +10,18 @@ import (
 
 // ShuffleArgument is the top-level proof combining ProductArgument and MultiExponentiationArgument.
 type ShuffleArgument struct {
-	CA       *emath.GqVector              // Commitments to permutation matrix columns
-	CB       *emath.GqVector              // Commitments to B = x^π columns
-	Product  ProductArgument              // Product argument
-	MultiExp MultiExponentiationArgument  // Multi-exponentiation argument
+	CA       *emath.GqVector             // Commitments to permutation matrix columns
+	CB       *emath.GqVector             // Commitments to B = x^π columns
+	Product  ProductArgument             // Product argument
+	MultiExp MultiExponentiationArgument // Multi-exponentiation argument
 }
 
 // GenShuffleArgument generates a shuffle argument proving C' is a valid shuffle of C.
 func GenShuffleArgument(
-	C *elgamal.CiphertextVector,     // Original ciphertexts
+	C *elgamal.CiphertextVector, // Original ciphertexts
 	CPrime *elgamal.CiphertextVector, // Shuffled ciphertexts
-	perm Permutation,                 // Permutation used
-	rho *emath.ZqVector,             // Re-encryption exponents
+	perm Permutation, // Permutation used
+	rho *emath.ZqVector, // Re-encryption exponents
 	pk elgamal.PublicKey,
 	ck CommitmentKey,
 	group *emath.GqGroup,

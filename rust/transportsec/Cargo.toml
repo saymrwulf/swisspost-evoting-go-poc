@@ -1,0 +1,18 @@
+[package]
+name = "transportsec"
+version = "0.1.0"
+edition = "2021"
+description = "Transport security primitives (Ed25519 signatures, X25519 ECDH) for the e-voting PoC, exposed via C ABI to Go"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+[profile.release]
+opt-level = 3
+lto = true

@@ -1,8 +1,6 @@
 package zkp
 
 import (
-	"math/big"
-
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
 )
@@ -57,17 +55,17 @@ func schnorrChallenge(group *emath.GqGroup, y emath.GqElement, c emath.GqElement
 	// h_aux
 	hAux := buildAuxHash("SchnorrProof", auxInfo)
 
-	// Hash: recursiveHash(f, y, c, h_aux)
-	hashBytes := hash.RecursiveHash(
+	// Challenge: RecursiveHashToZq oversamples to q.BitLen()+2λ bits before
+	// reducing mod q, giving a uniform Z_q element (per the Swiss Post spec).
+	// A plain RecursiveHash reduced mod q would be biased and would cap the
+	// challenge space at 256 bits for production-sized groups.
+	eVal := hash.RecursiveHashToZq(
+		zqGroup.Q(),
 		f,
 		hash.HashableBigInt{Value: y.Value()},
 		hash.HashableBigInt{Value: c.Value()},
 		hAux,
 	)
-
-	// Convert to Z_q element
-	eVal := new(big.Int).SetBytes(hashBytes)
-	eVal.Mod(eVal, zqGroup.Q())
 	e, _ := emath.NewZqElement(eVal, zqGroup)
 	return e
 }
