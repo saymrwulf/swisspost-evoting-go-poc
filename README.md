@@ -79,7 +79,10 @@ The `demo` command runs the whole protocol in one process. `netdemo` runs the
 **multi-party** architecture: every party is a separate endpoint holding only its
 own private state, and every message between them is Ed25519-signed (and, for
 card/mapping-table delivery, X25519-encrypted) — all transport cryptography in
-Rust. See [ARCHITECTURE.md](ARCHITECTURE.md).
+Rust. The `netdemo` return codes are **cast-as-intended**: each voter's code is
+recomputed by the control components from the submitted ciphertext (bound to the
+ballot by a plaintext-equality proof), so a substituted vote is detected. See
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 If you build Go directly (`go build ./...`), run `make rust` first so the static library
 at `rust/transportsec/target/release/libtransportsec.a` exists for cgo to link.
