@@ -120,6 +120,24 @@ func (w wireSchnorr) decode(zq *emath.ZqGroup) (zkp.SchnorrProof, error) {
 	return zkp.SchnorrProof{E: e, Z: z}, nil
 }
 
+// --- exponentiation proof (same shape as Schnorr) ---
+
+func encodeExponentiation(p zkp.ExponentiationProof) wireSchnorr {
+	return wireSchnorr{E: zqToStr(p.E), Z: zqToStr(p.Z)}
+}
+
+func (w wireSchnorr) decodeExponentiation(zq *emath.ZqGroup) (zkp.ExponentiationProof, error) {
+	e, err := strToZq(w.E, zq)
+	if err != nil {
+		return zkp.ExponentiationProof{}, fmt.Errorf("exp E: %w", err)
+	}
+	z, err := strToZq(w.Z, zq)
+	if err != nil {
+		return zkp.ExponentiationProof{}, fmt.Errorf("exp Z: %w", err)
+	}
+	return zkp.ExponentiationProof{E: e, Z: z}, nil
+}
+
 // --- ciphertext ---
 
 type wireCiphertext struct {

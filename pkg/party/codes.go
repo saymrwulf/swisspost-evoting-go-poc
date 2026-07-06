@@ -93,8 +93,19 @@ func (c *Ceremony) RunCards() error {
 		if err != nil {
 			return err
 		}
-		// Deliver the card to the voter confidentially.
-		if _, err := c.sendConfidential(c.Setup.id, VoterName(v), MsgVotingCard, card); err != nil {
+		// Deliver the card plus the public election parameters the voter needs
+		// to encrypt, confidentially.
+		primeStrs := make([]string, len(c.Setup.st.primes))
+		for i, p := range c.Setup.st.primes {
+			primeStrs[i] = p.String()
+		}
+		delivery := cardDelivery{
+			Card:         *card,
+			ElectionPK:   encodePK(c.Setup.st.electionPK),
+			ReturnCodePK: encodePK(c.Setup.st.returnCodePK),
+			Primes:       primeStrs,
+		}
+		if _, err := c.sendConfidential(c.Setup.id, VoterName(v), MsgVotingCard, delivery); err != nil {
 			return fmt.Errorf("deliver card to voter %d: %w", v, err)
 		}
 	}
@@ -125,13 +136,36 @@ type mappingTablePayload struct {
 	Primes       []string                 `json:"primes"`
 }
 
-// handleVotingCard (voter) receives and stores its confidential card.
+// cardDelivery is the confidential payload a voter receives: its private card
+// plus the public election parameters it needs to encrypt a ballot.
+type cardDelivery struct {
+	Card         votingCard    `json:"card"`
+	ElectionPK   wirePublicKey `json:"election_pk"`
+	ReturnCodePK wirePublicKey `json:"return_code_pk"`
+	Primes       []string      `json:"primes"`
+}
+
+// handleVotingCard (voter) receives and stores its confidential card + params.
 func (p *VoterClient) handleVotingCard(env *transport.Envelope) (*transport.Envelope, error) {
-	var card votingCard
-	if err := p.cer.openConfidential(p.id, env, &card); err != nil {
+	var d cardDelivery
+	if err := p.cer.openConfidential(p.id, env, &d); err != nil {
 		return nil, err
 	}
-	p.st.card = &card
+	group := p.cer.Config.Group
+	pk, err := d.ElectionPK.decode(group)
+	if err != nil {
+		return nil, err
+	}
+	p.st.card = &d.Card
+	p.st.electionPK = pk
+	p.st.primes = make([]*big.Int, len(d.Primes))
+	for i, ps := range d.Primes {
+		v, ok := new(big.Int).SetString(ps, 10)
+		if !ok {
+			return nil, fmt.Errorf("voter: invalid prime %q", ps)
+		}
+		p.st.primes[i] = v
+	}
 	return reply(p.id, env.From, MsgAck, env.Nonce, ackPayload{Party: p.id.Name, OK: true})
 }
 

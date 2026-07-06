@@ -52,9 +52,11 @@ type serverState struct {
 
 // voterState is a voter client's private card and ballot secrets.
 type voterState struct {
-	card     *votingCard
-	vcSK     emath.ZqElement
-	selected []int
+	card       *votingCard
+	electionPK elgamal.PublicKey
+	primes     []*big.Int
+	vcSK       emath.ZqElement
+	selected   []int
 }
 
 // votingCard is a voter's credential bundle (private to the voter, produced by

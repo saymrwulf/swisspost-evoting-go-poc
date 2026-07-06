@@ -21,6 +21,8 @@ func (p *ControlComponent) handleCCMsg(env *transport.Envelope) (*transport.Enve
 		return p.handleGenCCKeys(env)
 	case MsgLongCodeShareReq:
 		return p.handleLongCodeShare(env)
+	case MsgVerifyBallot:
+		return p.handleVerifyBallot(env)
 	default:
 		return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
 	}
@@ -39,6 +41,8 @@ func (p *VotingServer) handleServerMsg(env *transport.Envelope) (*transport.Enve
 	switch env.Type {
 	case MsgMappingTable:
 		return p.handleMappingTable(env)
+	case MsgCastBallot:
+		return p.handleCastBallot(env)
 	default:
 		return nil, fmt.Errorf("%s: unhandled message type %q", p.id.Name, env.Type)
 	}
