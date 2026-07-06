@@ -198,14 +198,14 @@
     <div class="card" onclick="openDeck('crypto')">
       <div class="icon">&#x1F510;</div>
       <div class="card-title">Cryptography Lecture</div>
-      <div class="card-desc">Undergraduate-level lecture. Groups, ElGamal, ZK proofs, Bayer-Groth, then a live election.</div>
-      <div class="card-meta">40 slides &middot; 5 parts</div>
+      <div class="card-desc">Undergraduate-level lecture. Groups, ElGamal, ZK proofs, Bayer-Groth, cast-as-intended return codes, Ed25519/X25519 transport, then a live election.</div>
+      <div class="card-meta">42 slides &middot; 6 parts</div>
     </div>
     <div class="card" onclick="openDeck('swe')">
       <div class="icon">&#x1F3D7;&#xFE0F;</div>
       <div class="card-title">Software Engineering</div>
-      <div class="card-desc">How to structure a 6,500-line Go codebase. Types, patterns, architecture, error handling.</div>
-      <div class="card-meta">34 slides &middot; 8 parts</div>
+      <div class="card-desc">How to structure the Go + Rust codebase. Types, patterns, the multi-party re-architecture, and the Rust transport-security layer.</div>
+      <div class="card-meta">40 slides &middot; 9 parts</div>
     </div>
   </div>
   <div class="manual-link">
@@ -261,18 +261,18 @@
        +-- Contracts with Swiss Post (System Provider)
             |-- Operates Voting Server, Access Layer
             +-- Operates 3 of 4 Control Components (separate teams)</div>
-<div class="note-box">In the Go PoC, all roles are exercised by the same person on the same machine via different <code>evote</code> subcommands. In production, these roles are performed by <strong>different people on different machines</strong> with strict access controls.</div>
+<div class="note-box">In the single-process <code>demo</code>, all roles are exercised by the same person on the same machine via different <code>evote</code> subcommands. The <code>netdemo</code> mode goes further: it splits the parties into separate endpoints that communicate only over an Ed25519-signed, X25519-encrypted transport (implemented in Rust) &mdash; a faithful emulation of the production trust boundaries, where these roles run on <strong>different machines under different operators</strong>.</div>
 
 <h3>1.4 Prerequisites</h3>
 <ul>
-  <li>The <code>evote</code> binary (build with <code>go build ./cmd/evote</code>)</li>
-  <li>Go 1.21 or later (only for building; the binary is self-contained)</li>
+  <li>The <code>evote</code> binary (build with <code>make build</code>, or <code>go build ./cmd/evote</code>)</li>
+  <li>Go 1.25 or later; a Rust toolchain (for the <code>netdemo</code> transport-security library)</li>
   <li>A terminal (macOS Terminal, Linux shell, or Windows command prompt)</li>
-  <li>No network access, database, or external services required</li>
+  <li>No external network, database, or services required &mdash; <code>netdemo</code>'s signed transport runs in-process</li>
 </ul>
-<div class="code-block"># Build the binary
+<div class="code-block"># Build the binary (Rust transport lib, then Go)
 cd evote/
-go build -o evote ./cmd/evote
+make build          # or: make rust && go build -o evote ./cmd/evote
 ./evote --help</div>
 
 <h2>2. Cantonal Administrator</h2>
