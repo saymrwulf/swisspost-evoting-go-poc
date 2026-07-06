@@ -357,8 +357,8 @@ const S = [
     github.com/spf13/cobra  v1.10.2   <span class="cmt">// CLI framework</span>
     golang.org/x/crypto     v0.47.0   <span class="cmt">// SHA3, Argon2id</span>
 )</div>
-    <p>That's the entire dependency list. Everything else -- ElGamal encryption, zero-knowledge proofs, the Bayer-Groth shuffle argument, Pedersen commitments -- is implemented from scratch.</p>
-    <div class="lesson-box"><strong>Minimize your dependencies.</strong> Every dependency is a liability: it can break, go unmaintained, introduce vulnerabilities, or change its API. For a cryptographic system, building from primitives also means you <em>understand</em> every line. You're not trusting a black box.<br><br>This doesn't mean "never use libraries." It means: use libraries for things that aren't your core domain (CLI parsing, hash algorithms), and own the code for things that <em>are</em> your core domain (the election protocol).</div>
+    <p>That's the entire Go dependency list. The protocol crypto -- ElGamal, zero-knowledge proofs, the Bayer-Groth shuffle, Pedersen commitments -- is implemented from scratch. The one deliberate exception is <em>transport</em> security: the multi-party mode links a small Rust crate (<code>ed25519-dalek</code>, <code>x25519-dalek</code>) for signatures and key exchange.</p>
+    <div class="lesson-box"><strong>Own your core domain; borrow the rest.</strong> The election protocol is the core domain, so it's built from primitives -- you understand every line. But hand-rolling Ed25519 or X25519 would be reckless: constant-time, audited implementations are exactly what you <em>should</em> depend on. Knowing which is which is the skill.</div>
   `
 },
 
@@ -750,10 +750,10 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
   title: 'The PoC vs. Production Tradeoff',
   html: `
     <div class="think-box"><strong>Should this PoC have better error handling?</strong><br><br>
-    No. And here's why.<br><br>
-    This code runs a single-threaded, in-memory election ceremony. There's no network, no disk I/O, no user input after the flags are parsed. If something goes wrong, it's because the <em>math is wrong</em> -- and the correct response is to crash with a stack trace, not to gracefully return an error that nobody knows how to handle.<br><br>
-    In production? Absolutely add proper error handling. There are network calls, database transactions, concurrent operations, and partial failures. But for a PoC, <strong>clarity wins over defensive programming</strong>.</div>
-    <div class="lesson-box"><strong>Match your error strategy to your context.</strong> A PoC, a library, a web server, and an embedded system all need different error handling approaches. Don't cargo-cult <code>if err != nil { return err }</code> on every line if you're writing throwaway code. And don't <code>panic</code> in a library that other people import. Context matters.</div>
+    It depends which mode you're in.<br><br>
+    The single-process <code>demo</code> runs an in-memory ceremony with no untrusted input after the flags are parsed. If something goes wrong there, it's because the <em>math is wrong</em> -- crashing with a stack trace is the right response.<br><br>
+    But the multi-party <code>netdemo</code> (Part VI&frac12;) crosses a real trust boundary: parties exchange signed messages, and a malformed message from a peer must produce a clean rejection, not a panic. So the transport-facing code returns errors and validates every decoded value -- the same code, held to a stricter standard <em>because its inputs are no longer trusted</em>.</div>
+    <div class="lesson-box"><strong>Match your error strategy to your context.</strong> Panic on impossible internal states in throwaway code; return errors at trust boundaries where inputs are attacker-controlled. The <em>same</em> project can need both -- what changes is whether the input is trusted.</div>
   `
 },
 
@@ -847,6 +847,74 @@ combined := <span class="fn">CombinePublicKeys</span>(pk0, pk1, pk2, pk3, pk4)</
 <span class="dim">everything else  515 LOC  ##########                          (8%)</span></div>
     <p>Nearly <span class="em">30%</span> of the code is the Bayer-Groth shuffle proof. That's the hardest algorithm in the system, so it makes sense that it's the largest package. The orchestration layer (<code>protocol</code>) is only 13%.</p>
     <div class="think-box"><strong>A healthy codebase has its complexity where the problem is complex.</strong> If your orchestration layer is 50% of the code, something is wrong -- the hard parts should be in the specialized packages. If your "utils" package is 30%, you probably have an abstraction missing. The distribution of lines tells you whether your architecture matches your problem.</div>
+  `
+},
+
+// ============================================================
+// PART VI½: THE MULTI-PARTY RE-ARCHITECTURE
+// ============================================================
+{
+  part: 'Part VI½: Going Multi-Party',
+  html: `
+    <div class="part-card">
+      <div class="part-num">Part VI&frac12;</div>
+      <h1>From One Process to Many Parties</h1>
+      <div class="part-sub">The real system isn't one program.<br>It's ten mutually distrusting parties on separate machines.</div>
+    </div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'The Trust Structure Was Missing',
+  html: `
+    <p>The single-process <code>demo</code> is faithful to the <em>protocol</em> but not to the <em>trust model</em>. Every party -- the setup component, four control components, the electoral board, the voting server, the voters, the verifier -- lived as fields on one shared struct. Anyone could read anyone's secret key.</p>
+    <p>The <code>netdemo</code> mode splits them into separate endpoints (<code>pkg/party</code>). Each holds only its own private state; everything that crosses between parties travels as an authenticated message over a bus (<code>pkg/transport</code>).</p>
+    <div class="insight-box">A protocol demo can collapse all parties into one process. A <em>trust</em> demo can't -- the whole point is that no single party sees the whole picture. Splitting them turns "trust us" into "verify every message."</div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'Transport Security -- in Rust',
+  html: `
+    <p>Every inter-party message is Ed25519-signed; confidential deliveries (voting cards) use X25519 ECDH + AES-GCM. Crucially, <strong>that cryptography is implemented in Rust</strong>, not Go, and called over a C ABI via cgo:</p>
+    <div class="code"><span class="cmt">// rust/transportsec (ed25519-dalek, x25519-dalek) -> C ABI -> Go</span>
+<span class="cmt">// pkg/transportsec/transportsec.go</span>
+<span class="kw">func</span> <span class="fn">Ed25519Sign</span>(seed, msg []<span class="tp">byte</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>)   <span class="cmt">// calls Rust</span>
+<span class="kw">func</span> <span class="fn">X25519SharedSecret</span>(priv, peerPub []<span class="tp">byte</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>)</div>
+    <p>No RSA anywhere -- including the X.509 certificate authority, whose Ed25519 signatures are produced through a Go <code>crypto.Signer</code> shim that forwards to Rust. A cross-language test proves the Rust signatures are standard RFC 8032 (Go's stdlib verifies them and vice-versa).</p>
+    <div class="lesson-box"><strong>Language boundaries are an architecture tool.</strong> Isolating all the signature/key-exchange code in one small Rust crate with a five-function C ABI means the security-critical primitives live in one memory-safe, audited place -- and the Go side literally cannot re-implement or bypass them.</div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'The Validation Boundary',
+  html: `
+    <p>Once messages arrive from other parties, they're untrusted. The single serialization layer (<code>pkg/party/wire.go</code>) is the choke point: crypto objects travel as decimal strings and every decode routes through the checked constructors.</p>
+    <div class="code"><span class="kw">func</span> <span class="fn">strToGq</span>(s <span class="tp">string</span>, group *<span class="tp">emath.GqGroup</span>) (<span class="tp">emath.GqElement</span>, <span class="tp">error</span>) {
+    v, ok := <span class="kw">new</span>(<span class="tp">big.Int</span>).<span class="fn">SetString</span>(s, <span class="num">10</span>)
+    <span class="kw">if</span> !ok { <span class="kw">return</span> ..., <span class="fn">err</span> }
+    <span class="kw">return</span> emath.<span class="fn">NewGqElement</span>(v, group)  <span class="cmt">// validates membership in G_q</span>
+}</div>
+    <p>A peer cannot inject a value outside the group -- the small-subgroup and non-residue attacks are closed at the exact point where a proof or ciphertext crosses the boundary.</p>
+    <div class="insight-box">In a monolith, "is this a valid group element?" is an invariant you establish once. Across a trust boundary, it's a question you must re-ask on every single decode. The architecture makes that unavoidable by funneling all decoding through one validated layer.</div>
+  `
+},
+
+{
+  part: 'Part VI½: Going Multi-Party',
+  title: 'Cast-as-Intended, For Real',
+  html: `
+    <p>The return codes a voter checks against their card are now computed by the control components <em>from the submitted ciphertext</em> -- not looked up. The voter sends a second ciphertext E2 and a <strong>plaintext-equality proof</strong> that E2 and the ballot encrypt the same vote.</p>
+    <div class="tree"><span class="dir">voter</span>   --&gt; ballot E1 + E2 + equality proof --&gt; <span class="hl">server</span>
+<span class="hl">server</span>  --&gt; verify proof on every CC, then:
+        exponentiate E2 by each CC's return-code key,
+        joint-decrypt --&gt; vote^&Sigma;k --&gt; look up short code
+<span class="dir">voter</span>   &lt;-- return code --  check against card</div>
+    <p>If malware encrypts option A for the tally but option B in the return-code channel, the equality proof fails and the ballot is rejected. A unit test drives exactly that attack and confirms it's caught.</p>
+    <div class="lesson-box"><strong>Soundness is a property of the whole pipeline, not one function.</strong> The proof, the CC computation, the mapping lookup, and the voter's check only add up to "cast-as-intended" when every link holds -- which is why it needs a test that attacks the seam between them.</div>
   `
 },
 
