@@ -231,7 +231,7 @@
 
 <h3>1.1 Purpose of This Manual</h3>
 <p>This manual provides step-by-step operational procedures for all participants in the Swiss Post e-voting election ceremony, as implemented in the Go proof-of-concept (PoC) system <code>evote</code>.</p>
-<p>The Go PoC reimplements the cryptographic core of the production Swiss Post e-voting system in approximately 6,500 lines of Go. It uses the same algorithms (ElGamal encryption, Schnorr proofs, Bayer-Groth verifiable shuffle) but operates as a single-machine, command-line tool rather than a distributed multi-server deployment.</p>
+<p>The Go PoC reimplements the cryptographic core of the production Swiss Post e-voting system in roughly ten thousand lines of Go, plus a small Rust crate for transport security. It uses the same algorithms (ElGamal encryption, Schnorr proofs, Bayer-Groth verifiable shuffle), with two modes: a single-machine <code>demo</code> and a multi-party <code>netdemo</code> where each role is a separate endpoint communicating over an Ed25519-signed, X25519-encrypted transport.</p>
 <p>Despite the simplified infrastructure, the Go PoC preserves the <strong>same role structure</strong> as the production system. Each role's responsibilities, trust boundaries, and ceremony steps are faithfully reproduced.</p>
 
 <h3>1.2 System Overview</h3>
@@ -636,17 +636,18 @@ make build          # or: make rust && go build -o evote ./cmd/evote
 <h2>Appendix C: Production vs. Go PoC</h2>
 <table>
   <tr><th>Aspect</th><th>Production</th><th>Go PoC</th></tr>
-  <tr><td>Language</td><td>Java 21 + TS + C#</td><td>Go</td></tr>
+  <tr><td>Language</td><td>Java 21 + TS + C#</td><td>Go + Rust (transport)</td></tr>
   <tr><td>Prime size</td><td>3072 bits</td><td>256 bits (demo)</td></tr>
-  <tr><td>Infrastructure</td><td>Kubernetes + 4 bare-metal CCs + SDM</td><td>Single binary</td></tr>
-  <tr><td>Networking</td><td>HTTPS, RSocket/CBOR, ActiveMQ</td><td>In-memory</td></tr>
+  <tr><td>Infrastructure</td><td>Kubernetes + 4 bare-metal CCs + SDM</td><td>Single binary; <code>netdemo</code> splits parties in-process</td></tr>
+  <tr><td>Networking</td><td>HTTPS, RSocket/CBOR, ActiveMQ</td><td>In-process signed bus (netdemo); no external network</td></tr>
+  <tr><td>Signatures / key exchange</td><td>RSASSA-PSS, RSA channels, RSA X.509</td><td>Ed25519 + X25519, Ed25519 X.509 (Rust); no RSA</td></tr>
   <tr><td>Persistence</td><td>PostgreSQL</td><td>In-memory</td></tr>
   <tr><td>Voter Portal</td><td>Angular SPA, 4 languages</td><td>Simulated in CLI</td></tr>
   <tr><td>ElGamal</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
   <tr><td>Schnorr proofs</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
   <tr><td>Bayer-Groth</td><td>Identical algorithm</td><td>Identical algorithm</td></tr>
-  <tr><td>Source code</td><td>~500K lines, 14 repos</td><td>~6,500 lines, 1 module</td></tr>
-  <tr><td>Dependencies</td><td>BouncyCastle, Spring, Angular, ...</td><td>Cobra + x/crypto</td></tr>
+  <tr><td>Source code</td><td>~500K lines, 14 repos</td><td>~10.5K lines Go + Rust crate, 1 module</td></tr>
+  <tr><td>Dependencies</td><td>BouncyCastle, Spring, Angular, ...</td><td>Cobra + x/crypto; ed25519/x25519-dalek (Rust)</td></tr>
 </table>
 
 <div class="separator"></div>
