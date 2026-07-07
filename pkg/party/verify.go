@@ -14,7 +14,7 @@ import (
 // decryptions). It returns nil only if every check passes. The verifier holds no
 // secret — it works purely from the bulletin-board transcript.
 func (c *Ceremony) RunVerify() error {
-	trace.Phase("verify")
+	trace.SetContext(NameVerifier, "verify")
 	c.logf("\n--- VERIFICATION PHASE (multi-party) ---")
 	tr := c.Transcript
 	group := c.Config.Group

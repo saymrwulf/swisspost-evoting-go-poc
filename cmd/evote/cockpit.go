@@ -21,6 +21,7 @@ var (
 	cockpitVoters  int
 	cockpitOptions int
 	cockpitDelayMs int
+	cockpitTmux    bool
 	cockpitRunning atomic.Bool
 )
 
@@ -39,15 +40,19 @@ var cockpitCmd = &cobra.Command{
 		if cockpitOptions < 1 || cockpitOptions > 200 {
 			return fmt.Errorf("--options must be in [1, 200]")
 		}
+		if cockpitTmux {
+			return runCockpitTmux()
+		}
 		return runCockpit()
 	},
 }
 
 func init() {
-	cockpitCmd.Flags().IntVar(&cockpitPort, "port", 8090, "HTTP port")
+	cockpitCmd.Flags().IntVar(&cockpitPort, "port", 8090, "HTTP port (browser mode)")
 	cockpitCmd.Flags().IntVar(&cockpitVoters, "voters", 3, "Number of voters")
 	cockpitCmd.Flags().IntVar(&cockpitOptions, "options", 3, "Number of voting options")
 	cockpitCmd.Flags().IntVar(&cockpitDelayMs, "delay", 350, "Milliseconds between events (pacing so it's watchable)")
+	cockpitCmd.Flags().BoolVar(&cockpitTmux, "tmux", false, "Terminal mode: one tmux pane per stakeholder instead of the browser")
 	rootCmd.AddCommand(cockpitCmd)
 }
 

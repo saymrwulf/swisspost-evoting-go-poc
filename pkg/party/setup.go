@@ -170,6 +170,7 @@ func (p *ControlComponent) handleGenCCKeys(env *transport.Envelope) (*transport.
 	group := cfg.Group
 	zq := emath.ZqGroupFromGqGroup(group)
 
+	trace.SetContext(p.id.Name, "setup")
 	kp := elgamal.GenKeyPair(group, req.NumOptions)
 	proofs := make([]zkp.SchnorrProof, req.NumOptions)
 	wireProofs := make([]wireSchnorr, req.NumOptions)
