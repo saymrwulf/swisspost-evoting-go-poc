@@ -5,6 +5,7 @@ import (
 
 	"github.com/user/evote/pkg/elgamal"
 	"github.com/user/evote/pkg/mixnet"
+	"github.com/user/evote/pkg/trace"
 )
 
 // RunVerify has the verifier party independently re-check the public transcript:
@@ -13,6 +14,7 @@ import (
 // decryptions). It returns nil only if every check passes. The verifier holds no
 // secret — it works purely from the bulletin-board transcript.
 func (c *Ceremony) RunVerify() error {
+	trace.Phase("verify")
 	c.logf("\n--- VERIFICATION PHASE (multi-party) ---")
 	tr := c.Transcript
 	group := c.Config.Group

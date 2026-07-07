@@ -3,6 +3,7 @@ package zkp
 import (
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
+	"github.com/user/evote/pkg/trace"
 )
 
 // GenSchnorrProof generates a Schnorr proof of knowledge of discrete log.
@@ -67,6 +68,19 @@ func schnorrChallenge(group *emath.GqGroup, y emath.GqElement, c emath.GqElement
 		hAux,
 	)
 	e, _ := emath.NewZqElement(eVal, zqGroup)
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Kind:    trace.KindChallenge,
+			Caption: "Fiat-Shamir challenge (Schnorr proof)",
+			LaTeX:   `e = \mathcal{H}\big((p,q,g),\, y,\, c,\, h_{\mathrm{aux}}\big) \bmod q`,
+			ASCII:   "e = H((p,q,g), y, c, h_aux) mod q",
+			Values: map[string]string{
+				"e": e.Value().String(),
+				"y": y.Value().String(),
+				"c": c.Value().String(),
+			},
+		}
+	})
 	return e
 }
 

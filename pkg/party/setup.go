@@ -7,6 +7,7 @@ import (
 	"github.com/user/evote/pkg/elgamal"
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
+	"github.com/user/evote/pkg/trace"
 	"github.com/user/evote/pkg/transport"
 	"github.com/user/evote/pkg/zkp"
 )
@@ -51,6 +52,7 @@ func (c *Ceremony) RunSetup() error {
 	group := cfg.Group
 	zq := emath.ZqGroupFromGqGroup(group)
 
+	trace.Phase("setup")
 	c.logf("\n--- SETUP PHASE (multi-party) ---")
 
 	// 1. Encoding primes (public, computed by the setup component).

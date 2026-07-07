@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/user/evote/pkg/trace"
 	"github.com/user/evote/pkg/transportsec"
 )
 
@@ -59,7 +60,32 @@ func (e *Envelope) Seal(sender *Identity) error {
 		return fmt.Errorf("seal %s->%s: %w", e.From, e.To, err)
 	}
 	e.Signature = sig
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Party:   e.From,
+			Kind:    trace.KindSign,
+			Caption: fmt.Sprintf("%s signs %q → %s", e.From, e.Type, e.To),
+			LaTeX:   `\sigma \gets \mathrm{Ed25519.Sign}_{sk_{\text{\VAL{party}}}}\!\big(\mathrm{SHA256}(\text{envelope})\big),\quad |\sigma| = 64\text{ B}`,
+			ASCII:   "σ ← Ed25519.Sign(sk, H(envelope))",
+			Values: map[string]string{
+				"party": e.From,
+				"to":    e.To,
+				"type":  e.Type,
+				"sigma": hexOf(sig),
+			},
+		}
+	})
 	return nil
+}
+
+func hexOf(b []byte) string {
+	const hexdigits = "0123456789abcdef"
+	out := make([]byte, len(b)*2)
+	for i, c := range b {
+		out[i*2] = hexdigits[c>>4]
+		out[i*2+1] = hexdigits[c&0x0f]
+	}
+	return string(out)
 }
 
 // Verify checks the envelope signature against senderEdPub (via Rust).

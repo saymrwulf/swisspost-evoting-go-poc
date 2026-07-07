@@ -1,8 +1,11 @@
 package mixnet
 
 import (
+	"fmt"
+
 	"github.com/user/evote/pkg/elgamal"
 	emath "github.com/user/evote/pkg/math"
+	"github.com/user/evote/pkg/trace"
 )
 
 // VerifiableShuffle holds the result of a verifiable shuffle.
@@ -29,6 +32,20 @@ func GenVerifiableShuffle(
 
 	// Generate shuffle argument
 	arg := GenShuffleArgument(C, shuffle.Shuffled, shuffle.Perm, shuffle.Rho, pk, ck, group)
+
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Kind:    trace.KindShuffle,
+			Caption: fmt.Sprintf("Bayer-Groth verifiable shuffle of %d ciphertexts", N),
+			LaTeX:   `\mathbf{C}' = \big\{\, \mathrm{ReEnc}_{pk}\!\big(C_{\pi(i)};\, \rho_i\big) \,\big\}_{i=1}^{\VAL{N}}, \qquad \pi \xleftarrow{\$} S_{\VAL{N}}`,
+			ASCII:   "C' = { ReEnc_pk(C_π(i); ρ_i) }  for a secret permutation π",
+			Values: map[string]string{
+				"N": fmt.Sprintf("%d", N),
+				"m": fmt.Sprintf("%d", N/n),
+				"n": fmt.Sprintf("%d", n),
+			},
+		}
+	})
 
 	return VerifiableShuffle{
 		ShuffledCiphertexts: shuffle.Shuffled,

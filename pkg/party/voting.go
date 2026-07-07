@@ -7,6 +7,7 @@ import (
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/returncodes"
+	"github.com/user/evote/pkg/trace"
 	"github.com/user/evote/pkg/transport"
 	"github.com/user/evote/pkg/zkp"
 )
@@ -41,6 +42,7 @@ type wireBallot struct {
 // server routes each ballot to all CCs for proof verification and stores the
 // accepted ballots. Selections are provided per voter (indexed by voter).
 func (c *Ceremony) RunVoting(selections [][]int) error {
+	trace.Phase("voting")
 	c.logf("\n--- VOTING PHASE (multi-party) ---")
 	for v, voter := range c.Voters {
 		sel := []int{0}
@@ -81,6 +83,20 @@ func (p *VoterClient) castBallot(selected []int) (*transport.Envelope, error) {
 	}
 	msgRandomness := emath.RandomZqElement(zq)
 	ct := elgamal.Encrypt(elgamal.NewMessage(emath.GqVectorOf(msgElems...)), msgRandomness, p.st.electionPK)
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Party:   p.id.Name,
+			Kind:    trace.KindEncrypt,
+			Caption: fmt.Sprintf("%s encrypts ballot (ElGamal over G_q)", p.id.Name),
+			LaTeX:   `E_1 = (\gamma,\, \boldsymbol{\phi}) = \big(g^{r},\; pk^{r}\cdot m\big), \qquad r \xleftarrow{\$} \mathbb{Z}_q`,
+			ASCII:   "E1 = (g^r,  pk^r · m),   r ← Z_q",
+			Values: map[string]string{
+				"r":     msgRandomness.Value().String(),
+				"gamma": ct.Gamma.Value().String(),
+				"m0":    voteElem.Value().String(),
+			},
+		}
+	})
 
 	// 2. Verification-card key pair.
 	p.st.vcSK = emath.RandomZqElement(zq)

@@ -8,6 +8,7 @@ import (
 	emath "github.com/user/evote/pkg/math"
 	"github.com/user/evote/pkg/mixnet"
 	"github.com/user/evote/pkg/returncodes"
+	"github.com/user/evote/pkg/trace"
 	"github.com/user/evote/pkg/transport"
 	"github.com/user/evote/pkg/zkp"
 )
@@ -46,6 +47,7 @@ type finalResp struct {
 // posts its shuffle and decryption proofs to the public transcript (the
 // bulletin board), which the verifier re-checks in RunVerify.
 func (c *Ceremony) RunTally() error {
+	trace.Phase("tally")
 	c.logf("\n--- TALLY PHASE (multi-party) ---")
 	group := c.Config.Group
 
@@ -136,6 +138,7 @@ func (p *ControlComponent) handleShuffle(env *transport.Envelope) (*transport.En
 	// Remaining public key = CCs[stage..] + EB, read from the public transcript.
 	remaining := remainingPK(p.cer.Transcript, req.Stage, cfg.NumCCs)
 
+	trace.SetContext(p.id.Name, "tally")
 	vs := mixnet.GenVerifiableShuffle(in, remaining, group)
 
 	// Partial decrypt with this CC's private key; produce decryption proofs.
@@ -171,6 +174,7 @@ func (p *ElectoralBoard) handleFinalMix(env *transport.Envelope) (*transport.Env
 		return nil, fmt.Errorf("eb final input: %w", err)
 	}
 
+	trace.SetContext(p.id.Name, "tally")
 	vs := mixnet.GenVerifiableShuffle(in, p.st.keyPair.PK, group)
 	p.cer.Transcript.Shuffles = append(p.cer.Transcript.Shuffles, vs)
 

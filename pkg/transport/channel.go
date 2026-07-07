@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/user/evote/pkg/symmetric"
+	"github.com/user/evote/pkg/trace"
 	"github.com/user/evote/pkg/transportsec"
 )
 
@@ -54,11 +55,26 @@ func (id *Identity) NewSecureChannel(peerName string, peerXPub []byte) (*SecureC
 	if err != nil {
 		return nil, fmt.Errorf("ECDH %s<->%s: %w", id.Name, peerName, err)
 	}
+	sessionKey := deriveSessionKey(shared, id.XPub, peerXPub)
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Party:   id.Name,
+			Kind:    trace.KindKeyEx,
+			Caption: fmt.Sprintf("%s ⇄ %s: X25519 key agreement", id.Name, peerName),
+			LaTeX:   `s = a \cdot B = b \cdot A \in \mathbb{X}_{25519}, \qquad k = \mathrm{SHA256}(\text{ctx} \,\Vert\, A \,\Vert\, B \,\Vert\, s)`,
+			ASCII:   "s = a·B = b·A ;  k = SHA256(ctx ‖ A ‖ B ‖ s)",
+			Values: map[string]string{
+				"peer":    peerName,
+				"shared":  hexOf(shared),
+				"session": hexOf(sessionKey),
+			},
+		}
+	})
 	return &SecureChannel{
 		local:      id,
 		peerName:   peerName,
 		peerXPub:   peerXPub,
-		sessionKey: deriveSessionKey(shared, id.XPub, peerXPub),
+		sessionKey: sessionKey,
 	}, nil
 }
 
