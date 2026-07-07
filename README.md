@@ -68,12 +68,23 @@ make test           # runs cargo test + go test ./...
 ./evote netdemo --voters 10 --options 3
 ./evote netdemo --voters 3 --options 2 --verbose   # log every signed message
 
+# Watch the cryptography execute as live typeset math in the browser
+./evote cockpit --voters 3 --options 3        # open http://localhost:8090
+
 # Serve presentations on local network (for iPad viewing)
 ./evote serve --port 8080
 
 # Theatrical step-by-step terminal walkthrough
 ./evote present
 ```
+
+The `cockpit` command is a teaching instrument: it runs the full multi-party
+ceremony and streams **every cryptographic operation** — sampling, ElGamal
+encryption, Fiat-Shamir challenges, the Bayer-Groth shuffle, Ed25519 signatures,
+X25519 key agreement — to a browser page that renders each as **typeset
+mathematics with the real runtime values**, the instant it executes. The math is
+native MathML (no libraries, offline); a stakeholder sidebar highlights the acting
+party and a phase timeline tracks setup→cards→voting→tally→verify.
 
 The `demo` command runs the whole protocol in one process. `netdemo` runs the
 **multi-party** architecture: every party is a separate endpoint holding only its
