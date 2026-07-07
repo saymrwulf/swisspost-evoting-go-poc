@@ -8,5 +8,8 @@ testdata/*.json
 # Rust build artifacts (the static lib is rebuilt via `make rust` / `cargo build`)
 rust/**/target/
 
+# Local Claude Code settings (keep launch.json, ignore per-user settings)
+.claude/settings.local.json
+
 # macOS
 .DS_Store

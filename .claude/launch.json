@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cockpit",
+      "runtimeExecutable": "./evote",
+      "runtimeArgs": ["cockpit", "--port", "8092", "--voters", "2", "--options", "3", "--delay", "40"],
+      "port": 8092
+    }
+  ]
+}

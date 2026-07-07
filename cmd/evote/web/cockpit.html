@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E-Voting — Live Crypto Cockpit</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#1f2328; --dim:#57606a; --line:#d0d7de; --soft:#f6f8fa;
+    --accent:#0969da; --ok:#1a7f37; --warn:#9a6700; --sign:#8250df; --shuffle:#bf3989;
+    --sample:#0a7ea3; --encrypt:#1a7f37; --challenge:#9a6700; --keyex:#6639ba;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  header h1{font-size:17px;margin:0;font-weight:700;}
+  header .sub{color:var(--dim);font-size:13px;}
+  .timeline{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;}
+  .phase{font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--dim);}
+  .phase.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .phase.done{background:var(--soft);color:var(--ok);border-color:var(--ok);}
+  main{display:grid;grid-template-columns:230px 1fr;height:calc(100% - 56px);}
+  @media(max-width:760px){main{grid-template-columns:1fr;}#parties{display:none}}
+  #parties{border-right:1px solid var(--line);padding:14px;overflow:auto;background:var(--soft);}
+  #parties h2{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:0 0 10px;}
+  .party{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--dim);transition:background .2s,color .2s;}
+  .party .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;}
+  .party.live{background:#fff;color:var(--fg);font-weight:600;box-shadow:0 0 0 1px var(--line);}
+  .party.live .dot{background:var(--accent);box-shadow:0 0 0 3px rgba(9,105,218,.15);}
+  #feed{overflow:auto;padding:18px 22px;}
+  .op{border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:12px 16px;margin:0 0 12px;animation:pop .25s ease;}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .op .row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+  .badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:999px;color:#fff;}
+  .op .who{font-weight:600;font-size:13px;}
+  .op .cap{color:var(--dim);font-size:13px;}
+  .op .seq{margin-left:auto;color:var(--line);font-size:12px;font-variant-numeric:tabular-nums;}
+  math{font-size:19px;}
+  .vals{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
+  .val{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer;color:var(--fg);}
+  .val .k{color:var(--accent);}
+  .val.open{white-space:normal;word-break:break-all;max-width:100%;}
+  .k-sign{border-left-color:var(--sign)} .k-sign .badge{background:var(--sign)}
+  .k-shuffle{border-left-color:var(--shuffle)} .k-shuffle .badge{background:var(--shuffle)}
+  .k-sample{border-left-color:var(--sample)} .k-sample .badge{background:var(--sample)}
+  .k-encrypt{border-left-color:var(--encrypt)} .k-encrypt .badge{background:var(--encrypt)}
+  .k-decrypt{border-left-color:var(--sample)} .k-decrypt .badge{background:var(--sample)}
+  .k-challenge{border-left-color:var(--challenge)} .k-challenge .badge{background:var(--challenge)}
+  .k-keyex{border-left-color:var(--keyex)} .k-keyex .badge{background:var(--keyex)}
+  .k-proof{border-left-color:var(--accent)} .k-proof .badge{background:var(--accent)}
+  .k-verify{border-left-color:var(--ok)} .k-verify .badge{background:var(--ok)}
+  .k-note .badge{background:var(--dim)}
+  #status{padding:10px 22px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;background:var(--soft);}
+  .done-banner{color:var(--ok);font-weight:700;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔐 Live Crypto Cockpit</h1>
+  <span class="sub">the cryptography, rendered as it runs</span>
+  <div class="timeline" id="timeline"></div>
+</header>
+<main>
+  <aside id="parties"><h2>Stakeholders</h2><div id="partyList"></div></aside>
+  <section id="feed"></section>
+</main>
+<div id="status">Connecting…</div>
+
+<script>
+"use strict";
+
+// compact value elision (mirrors trace.Short in Go)
+function short(s){ if(s.length<=15) return s; return s.slice(0,8)+"…"+s.slice(-6); }
+
+// ============================================================
+// Focused LaTeX -> MathML converter.
+// Handles exactly the subset emitted by pkg/trace templates. Native MathML
+// renders offline in every modern browser — no library, no fonts to ship.
+// Unknown tokens fall back to literal text so nothing ever crashes the view.
+// ============================================================
+const GREEK={sigma:"σ",gamma:"γ",rho:"ρ",pi:"π",phi:"φ",tau:"τ",lambda:"λ",mu:"μ",delta:"δ"};
+const OPS={cdot:"⋅",in:"∈",gets:"←",Vert:"∥",times:"×",oplus:"⊕",bmod:"mod",
+           qquad:" ",quad:" "};
+const BB={Z:"ℤ",X:"𝕏",N:"ℕ",G:"𝔾",F:"𝔽",Q:"ℚ"};
+const CAL={H:"ℋ",R:"ℛ",C:"𝒞",E:"ℰ"};
+const MML="http://www.w3.org/1998/Math/MathML";
+
+function el(tag,...kids){ const m=document.createElementNS(MML,tag);
+  for(const k of kids){ if(k==null) continue; m.appendChild(typeof k==="string"?document.createTextNode(k):k);} return m; }
+function mi(t){return el("mi",t);} function mo(t){return el("mo",t);} function mn(t){return el("mn",t);}
+function mtext(t){return el("mtext",t);}
+function mspace(){const s=el("mspace"); s.setAttribute("width","0.5em"); return s;}
+
+function tokenize(src){
+  const out=[]; let i=0;
+  while(i<src.length){
+    const c=src[i];
+    if(c==="\\"){
+      let j=i+1,name="";
+      if(/[a-zA-Z]/.test(src[j])){ while(j<src.length&&/[a-zA-Z]/.test(src[j])){name+=src[j++];} }
+      else { name=src[j]; j++; }
+      out.push({t:"cmd",v:name}); i=j; continue;
+    }
+    if(c==="{"){ let depth=1,j=i+1; while(j<src.length&&depth>0){ if(src[j]==="{")depth++; else if(src[j]==="}")depth--; if(depth>0)j++; }
+      out.push({t:"grp",v:src.slice(i+1,j)}); i=j+1; continue; }
+    if(c==="^"||c==="_"){ out.push({t:c}); i++; continue; }
+    if(c===" "){ i++; continue; }
+    out.push({t:"chr",v:c}); i++;
+  }
+  return out;
+}
+
+function render(src,values){
+  const toks=tokenize(src); const nodes=[];
+  for(let i=0;i<toks.length;i++){
+    const tk=toks[i];
+    if(tk.t==="^"||tk.t==="_"){
+      const base=nodes.pop()||mi("");
+      const nxt=toks[++i];
+      const sub=nxt.t==="grp"?groupOf(render(nxt.v,values)):renderOne(nxt,values);
+      nodes.push(el(tk.t==="^"?"msup":"msub",base,sub||mi("")));
+      continue;
+    }
+    const consume=()=>toks[++i];
+    const n=renderOne(tk,values,consume);
+    if(Array.isArray(n)) nodes.push(...n); else if(n) nodes.push(n);
+  }
+  return nodes;
+}
+function groupOf(arr){ if(Array.isArray(arr)) return arr.length===1?arr[0]:el("mrow",...arr); return arr; }
+
+function renderOne(tk,values,consume){
+  if(tk.t==="grp") return groupOf(render(tk.v,values));
+  if(tk.t==="chr"){
+    const c=tk.v;
+    if(/[0-9]/.test(c)) return mn(c);
+    if(/[a-zA-Z]/.test(c)) return mi(c);
+    if(c==="'") return mo("′");
+    return mo(c);
+  }
+  if(tk.t==="cmd"){
+    const v=tk.v;
+    if(v==="VAL"){ const g=consume&&consume(); const name=g?g.v:""; const full=(values&&values[name])||name;
+      return mtext(" "+short(full)+" "); }
+    if(v in GREEK) return mi(GREEK[v]);
+    if(v==="mathbb"||v==="mathcal"||v==="mathbf"||v==="boldsymbol"||v==="mathrm"||v==="text"||v==="operatorname"){
+      const g=consume&&consume(); const inner=g?g.v:"";
+      if(v==="mathbb") return mi(BB[inner]||inner);
+      if(v==="mathcal") return mi(CAL[inner]||inner);
+      if(v==="mathrm"||v==="operatorname"){ const t=el("mi",inner); t.setAttribute("mathvariant","normal"); return t; }
+      if(v==="text") return mtext(inner);
+      const b=groupOf(render(inner,values)); if(b&&b.setAttribute) b.setAttribute("mathvariant","bold"); return b;
+    }
+    if(v==="frac"){ const a=consume&&consume(),b=consume&&consume();
+      return el("mfrac",groupOf(render(a?a.v:"",values)),groupOf(render(b?b.v:"",values))); }
+    if(v==="sqrt"){ const a=consume&&consume(); return el("msqrt",groupOf(render(a?a.v:"",values))); }
+    if(v==="xleftarrow"){ const a=consume&&consume();
+      return el("mover",mo("←"),el("mtext",a?a.v.replace(/\\\$/,"$"):"")); }
+    if(v==="big"||v==="Big"||v==="bigg"||v==="left"||v==="right"||v==="displaystyle") return null;
+    // spacing control symbols: \, \: \; \  (backslash-space) -> spaces; \! -> nothing
+    if(v==="!") return null;
+    if(v==="," ){ const s=el("mspace"); s.setAttribute("width","0.17em"); return s; }
+    if(v===":" ){ const s=el("mspace"); s.setAttribute("width","0.22em"); return s; }
+    if(v===";" ){ const s=el("mspace"); s.setAttribute("width","0.28em"); return s; }
+    if(v===" " ){ const s=el("mspace"); s.setAttribute("width","0.33em"); return s; }
+    if(v in OPS){ const s=OPS[v]; if(s===" ") return mspace();
+      if(/^[a-z]+$/i.test(s)){ const o=el("mo",s); o.setAttribute("lspace","0.25em"); o.setAttribute("rspace","0.25em"); return o; }
+      return mo(s); }
+    if(v==="{"||v==="}"||v==="|") return mo(v==="|"?"∥":v);
+    if(v==="\\") return null;
+    return mi(v); // unknown: literal, never crash
+  }
+  return null;
+}
+
+function mathFor(latex,values){
+  const m=el("math"); m.setAttribute("display","block");
+  try{ m.appendChild(el("mrow",...render(latex,values))); }
+  catch(e){ m.appendChild(mtext(latex)); }
+  return m;
+}
+
+// ============================================================
+// Live UI
+// ============================================================
+const PARTY_ORDER=["setup-component","control-component-0","control-component-1",
+  "control-component-2","control-component-3","electoral-board","voting-server","verifier"];
+const PHASES=["setup","cards","voting","tally","verify"];
+const feed=document.getElementById("feed");
+const statusEl=document.getElementById("status");
+const partyList=document.getElementById("partyList");
+const timeline=document.getElementById("timeline");
+const partyEls={};
+let curPhase="";
+
+function label(p){ return p.replace("control-component-","CC").replace("electoral-board","Electoral Board")
+  .replace("voting-server","Voting Server").replace("setup-component","Setup").replace("verifier","Verifier"); }
+
+function initUI(){
+  for(const p of PARTY_ORDER){
+    const d=document.createElement("div"); d.className="party";
+    d.innerHTML='<span class="dot"></span><span>'+label(p)+'</span>';
+    partyList.appendChild(d); partyEls[p]=d;
+  }
+  for(const ph of PHASES){ const s=document.createElement("span"); s.className="phase"; s.textContent=ph; s.dataset.ph=ph; timeline.appendChild(s); }
+}
+function setPhase(ph){
+  if(ph===curPhase) return; curPhase=ph;
+  for(const s of timeline.children){
+    const i=PHASES.indexOf(s.dataset.ph), c=PHASES.indexOf(ph);
+    s.className="phase"+(i<c?" done":i===c?" active":"");
+  }
+}
+function markLive(party){
+  for(const p in partyEls) partyEls[p].classList.remove("live");
+  if(party && partyEls[party]) partyEls[party].classList.add("live");
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function addOp(e){
+  if(e.phase) setPhase(e.phase);
+  markLive(e.party);
+  const card=document.createElement("div");
+  card.className="op k-"+e.kind;
+  const row=document.createElement("div"); row.className="row";
+  row.innerHTML='<span class="badge">'+escapeHtml(e.kind)+'</span>'+
+    '<span class="who">'+escapeHtml(e.party||"")+'</span>'+
+    '<span class="cap">'+escapeHtml(e.caption||"")+'</span>'+
+    '<span class="seq">#'+e.seq+'</span>';
+  card.appendChild(row);
+  if(e.latex) card.appendChild(mathFor(e.latex,e.values||{}));
+  if(e.values && Object.keys(e.values).length){
+    const vd=document.createElement("div"); vd.className="vals";
+    for(const k in e.values){
+      const full=e.values[k];
+      const chip=document.createElement("span"); chip.className="val"; chip.title="click to expand / copy";
+      const paint=()=>{ chip.innerHTML='<span class="k">'+escapeHtml(k)+'</span> = '+escapeHtml(chip.classList.contains("open")?full:short(full)); };
+      paint();
+      chip.onclick=()=>{ chip.classList.toggle("open"); paint();
+        if(chip.classList.contains("open")&&navigator.clipboard) navigator.clipboard.writeText(full).catch(()=>{}); };
+      vd.appendChild(chip);
+    }
+    card.appendChild(vd);
+  }
+  feed.appendChild(card);
+  feed.scrollTop=feed.scrollHeight;
+}
+
+initUI();
+const es=new EventSource("/events");
+let count=0;
+es.addEventListener("op",ev=>{ const e=JSON.parse(ev.data); count++; addOp(e);
+  statusEl.textContent="Streaming live crypto operations… "+count+" so far"; });
+es.addEventListener("done",ev=>{ markLive(null);
+  for(const s of timeline.children) s.className="phase done";
+  statusEl.innerHTML='<span class="done-banner">✓ Election complete and verified.</span> '+count+' cryptographic operations rendered live.';
+  es.close(); });
+es.onerror=()=>{ if(count===0) statusEl.textContent="Stream ended, or a run is already in progress — reload to restart."; };
+</script>
+</body>
+</html>

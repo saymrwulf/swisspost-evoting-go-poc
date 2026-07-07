@@ -65,7 +65,7 @@ func (e *Envelope) Seal(sender *Identity) error {
 			Party:   e.From,
 			Kind:    trace.KindSign,
 			Caption: fmt.Sprintf("%s signs %q → %s", e.From, e.Type, e.To),
-			LaTeX:   `\sigma \gets \mathrm{Ed25519.Sign}_{sk_{\text{\VAL{party}}}}\!\big(\mathrm{SHA256}(\text{envelope})\big),\quad |\sigma| = 64\text{ B}`,
+			LaTeX:   `\sigma \gets \mathrm{Ed25519.Sign}_{sk}\!\big(\mathrm{SHA256}(\text{envelope})\big),\quad |\sigma| = 64\text{ B}`,
 			ASCII:   "σ ← Ed25519.Sign(sk, H(envelope))",
 			Values: map[string]string{
 				"party": e.From,
