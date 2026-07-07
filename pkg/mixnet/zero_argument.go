@@ -37,6 +37,12 @@ func GenZeroArgument(
 	n := A.NumRows()
 	m := A.NumCols()
 
+	emitArgument("zero",
+		"Zero argument: prove a bilinear map over A and B vanishes",
+		`\text{ZeroArgument}:\ \sum_{i=1}^{m} \mathbf{a}_i \ast_y \mathbf{b}_i = 0, \quad \mathbf{a}\ast_y\mathbf{b}=\textstyle\sum_j a_j b_j y^{j}`,
+		"ZeroArgument: Σ_i (a_i ∗_y b_i) = 0   with bilinear star-map ∗_y",
+		dims(m, n))
+
 	// 1. Prepend random a_0 to A, append random b_m to B
 	a0 := emath.RandomZqVector(n, zqGroup)
 	r0 := emath.RandomZqElement(zqGroup)

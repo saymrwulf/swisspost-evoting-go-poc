@@ -1,6 +1,7 @@
 package mixnet
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/user/evote/pkg/elgamal"
@@ -32,6 +33,12 @@ func GenSingleValueProductArgument(
 	zqGroup := emath.ZqGroupFromGqGroup(group)
 	n := a.Size()
 	zero, _ := emath.NewZqElement(big.NewInt(0), zqGroup)
+
+	emitArgument("svp",
+		"Single-value product argument: prove the product of a committed vector equals b",
+		`\text{SingleValueProductArgument}:\ \prod_{i=1}^{n} a_i = b, \quad c_a = \mathrm{Comm}(a; r)`,
+		"SingleValueProductArgument: Π_i a_i = b   for committed vector a",
+		map[string]string{"n": fmt.Sprintf("%d", n), "b": b.Value().String()})
 
 	// 1. Compute partial products b_k = Π_{i=0}^k a_i
 	bPartial := make([]emath.ZqElement, n)

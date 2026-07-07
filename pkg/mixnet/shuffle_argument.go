@@ -30,6 +30,12 @@ func GenShuffleArgument(
 	N := C.Size()
 	m, n := GetMatrixDimensions(N)
 
+	emitArgument("shuffle",
+		"Shuffle argument: prove C' is a permutation + re-encryption of C, without revealing π",
+		`\text{ShuffleArgument}:\ \prod_i C_i^{x^i} \;\sim\; \prod_i C'^{\,x^{\pi(i)}}_i \ \text{via commitments } \mathbf{c}_A, \mathbf{c}_B \text{ and challenges } x,y,z`,
+		"ShuffleArgument: bind C and C' through commitments c_A, c_B and challenges x, y, z",
+		dims(m, n))
+
 	// 1. Convert permutation to m×n matrix A
 	aCols := make([]*emath.ZqVector, m)
 	rA := emath.RandomZqVector(m, zqGroup)

@@ -16,7 +16,9 @@ func TestCeremonyEmitsLiveCryptoEvents(t *testing.T) {
 	unsub := trace.Subscribe(sink)
 	defer unsub()
 
-	cfg := testConfig(t, 3, 3)
+	// 6 voters → N=6 ballots → the shuffle matrix is 2×3 (m>1), so the full
+	// Bayer-Groth argument tree runs (Hadamard/Zero only fire when m>1).
+	cfg := testConfig(t, 6, 3)
 	c, err := NewCeremony(cfg, nil)
 	if err != nil {
 		t.Fatalf("NewCeremony: %v", err)
@@ -27,7 +29,7 @@ func TestCeremonyEmitsLiveCryptoEvents(t *testing.T) {
 	if err := c.RunCards(); err != nil {
 		t.Fatalf("RunCards: %v", err)
 	}
-	if err := c.RunVoting([][]int{{0}, {1}, {2}}); err != nil {
+	if err := c.RunVoting([][]int{{0}, {1}, {2}, {0}, {1}, {2}}); err != nil {
 		t.Fatalf("RunVoting: %v", err)
 	}
 	if err := c.RunTally(); err != nil {
@@ -47,13 +49,18 @@ func TestCeremonyEmitsLiveCryptoEvents(t *testing.T) {
 		seen[e.Kind] = e
 	}
 
-	// Every headline operation must have fired at least once.
+	// Every headline operation must have fired at least once — including the
+	// deep Bayer-Groth layers (commitment, sub-arguments, partial decryption)
+	// that mirror the Swiss Post crypto-primitives class structure.
 	for _, k := range []trace.Kind{
 		trace.KindSign,      // Ed25519 transport signatures
 		trace.KindKeyEx,     // X25519 ECDH (card delivery)
 		trace.KindEncrypt,   // ballot encryption
 		trace.KindChallenge, // Fiat-Shamir challenge
-		trace.KindShuffle,   // Bayer-Groth mix-net
+		trace.KindShuffle,   // Bayer-Groth mix-net (top level)
+		trace.KindCommit,    // Pedersen matrix commitment
+		trace.KindArgument,  // a Bayer-Groth sub-argument
+		trace.KindDecrypt,   // CC partial decryption + proof
 	} {
 		e, ok := seen[k]
 		if !ok {
@@ -65,6 +72,28 @@ func TestCeremonyEmitsLiveCryptoEvents(t *testing.T) {
 		}
 		if len(e.Values) == 0 {
 			t.Errorf("%q event carries no live values", k)
+		}
+	}
+
+	// All five Bayer-Groth sub-arguments must appear (matching the Swiss Post
+	// *ArgumentService classes). We identify them by a keyword in the caption.
+	argCaptions := map[string]bool{}
+	for _, e := range events {
+		if e.Kind == trace.KindArgument {
+			argCaptions[e.Caption] = true
+		}
+	}
+	for _, want := range []string{"Shuffle argument", "Product argument", "Hadamard argument",
+		"Zero argument", "Single-value product argument", "Multi-exponentiation argument"} {
+		found := false
+		for cap := range argCaptions {
+			if len(cap) >= len(want) && cap[:len(want)] == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("sub-argument %q never appeared in the trace", want)
 		}
 	}
 

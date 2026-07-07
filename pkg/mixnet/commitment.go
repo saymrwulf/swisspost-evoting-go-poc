@@ -1,10 +1,12 @@
 package mixnet
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/user/evote/pkg/hash"
 	emath "github.com/user/evote/pkg/math"
+	"github.com/user/evote/pkg/trace"
 )
 
 var oneBI = big.NewInt(1)
@@ -101,5 +103,19 @@ func (ck CommitmentKey) CommitMatrix(A *emath.ZqMatrix, r *emath.ZqVector) *emat
 	for j := 0; j < A.NumCols(); j++ {
 		commitments[j] = ck.Commit(A.GetColumn(j), r.Get(j))
 	}
-	return emath.GqVectorOf(commitments...)
+	result := emath.GqVectorOf(commitments...)
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Kind:    trace.KindCommit,
+			Caption: fmt.Sprintf("Pedersen commitment to a %d×%d matrix (one per column)", A.NumRows(), A.NumCols()),
+			LaTeX:   `\mathbf{c}_A = \mathrm{Comm}_{ck}(A;\, \mathbf{r}), \quad c_{A,j} = h^{r_j} \textstyle\prod_{i=1}^{n} g_i^{A_{ij}}`,
+			ASCII:   "c_A,j = h^r_j · Π_i g_i^{A_ij}   (Pedersen, per column)",
+			Values: map[string]string{
+				"rows": fmt.Sprintf("%d", A.NumRows()),
+				"cols": fmt.Sprintf("%d", A.NumCols()),
+				"c_A0": result.Get(0).Value().String(),
+			},
+		}
+	})
+	return result
 }

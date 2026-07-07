@@ -30,6 +30,12 @@ func GenHadamardArgument(
 	n := A.NumRows()
 	m := A.NumCols()
 
+	emitArgument("hadamard",
+		"Hadamard argument: prove the entrywise product of A's columns equals b",
+		`\text{HadamardArgument}:\ \mathbf{b} = \mathbf{a}_1 \circ \mathbf{a}_2 \circ \cdots \circ \mathbf{a}_m \quad(\circ = \text{entrywise product})`,
+		"HadamardArgument: b = a_1 ∘ a_2 ∘ … ∘ a_m   (∘ = entrywise product)",
+		dims(m, n))
+
 	// 1. Compute intermediate products b_j = ∏_{i=0}^j A[:,i] (entrywise)
 	bIntermediate := make([]*emath.ZqVector, m)
 	bIntermediate[0] = A.GetColumn(0)

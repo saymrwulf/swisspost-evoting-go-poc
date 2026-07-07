@@ -37,6 +37,12 @@ func GenMultiExponentiationArgument(
 	m := A.NumCols()
 	zero, _ := emath.NewZqElement(big.NewInt(0), zqGroup)
 
+	emitArgument("multiexp",
+		"Multi-exponentiation argument: prove the target ciphertext is the committed re-encryption product",
+		`\text{MultiExpArgument}:\ C = \Big(\prod_{i=1}^{m}\prod_{j=1}^{n} C_{ij}^{A_{ij}}\Big)\cdot \mathrm{ReEnc}_{pk}(1;\rho)`,
+		"MultiExpArgument: C = Π_ij C_ij^{A_ij} · ReEnc_pk(1; ρ)",
+		dims(m, n))
+
 	// 1. Random values
 	a0 := emath.RandomZqVector(n, zqGroup)
 	r0 := emath.RandomZqElement(zqGroup)

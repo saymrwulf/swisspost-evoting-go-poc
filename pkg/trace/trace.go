@@ -29,6 +29,7 @@ const (
 	KindCommit    Kind = "commit"    // Pedersen commitment
 	KindChallenge Kind = "challenge" // Fiat-Shamir challenge derivation
 	KindProof     Kind = "proof"     // ZK proof generation / verification
+	KindArgument  Kind = "argument"  // a Bayer-Groth sub-argument (product/Hadamard/zero/SVP/multi-exp)
 	KindShuffle   Kind = "shuffle"   // mix-net permutation + re-encryption
 	KindSign      Kind = "sign"      // Ed25519 signature (transport)
 	KindVerify    Kind = "verify"    // signature / proof verification

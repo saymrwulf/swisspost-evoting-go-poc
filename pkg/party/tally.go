@@ -151,6 +151,19 @@ func (p *ControlComponent) handleShuffle(env *transport.Envelope) (*transport.En
 		decProofs[i] = zkp.GenDecryptionProof(ct, p.st.keyPair.SK, p.st.keyPair.PK, msg, group)
 	}
 	out := elgamal.NewCiphertextVector(decrypted)
+	trace.EmitFunc(func() trace.Event {
+		return trace.Event{
+			Party:   p.id.Name,
+			Kind:    trace.KindDecrypt,
+			Caption: fmt.Sprintf("%s partially decrypts %d ciphertexts and proves correctness", p.id.Name, out.Size()),
+			LaTeX:   `\phi_i' = \phi_i \cdot \gamma_i^{-sk}, \quad \text{proof: } \log_g pk = \log_{\gamma_i} (\gamma_i^{sk})`,
+			ASCII:   "φ'_i = φ_i · γ_i^{-sk}   + ZK proof log_g(pk) = log_γ(γ^sk)",
+			Values: map[string]string{
+				"count":   fmt.Sprintf("%d", out.Size()),
+				"proof_e": decProofs[0].E.Value().String(),
+			},
+		}
+	})
 
 	// Post proofs to the transcript (bulletin board).
 	p.cer.Transcript.Shuffles = append(p.cer.Transcript.Shuffles, vs)

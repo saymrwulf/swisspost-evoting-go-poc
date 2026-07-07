@@ -27,6 +27,12 @@ func GenProductArgument(
 	n := A.NumRows()
 	m := A.NumCols()
 
+	emitArgument("product",
+		"Product argument: prove the product of all matrix entries equals b",
+		`\text{ProductArgument}:\ \prod_{i=1}^{n}\prod_{j=1}^{m} A_{ij} = b \quad(\text{via Hadamard} \circ \text{SVP})`,
+		"ProductArgument: Π_ij A_ij = b   (Hadamard ∘ single-value-product)",
+		dims(m, n))
+
 	if m == 1 {
 		// Single column: just use SVP directly
 		svp := GenSingleValueProductArgument(cA.Get(0), b, A.GetColumn(0), r.Get(0), pk, ck, group)
