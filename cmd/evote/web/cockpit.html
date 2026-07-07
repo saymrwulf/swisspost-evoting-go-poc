@@ -51,8 +51,11 @@
   .k-proof{border-left-color:var(--accent)} .k-proof .badge{background:var(--accent)}
   .k-verify{border-left-color:var(--ok)} .k-verify .badge{background:var(--ok)}
   .k-note .badge{background:var(--dim)}
-  #status{padding:10px 22px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;background:var(--soft);}
+  #status{padding:10px 22px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;background:var(--soft);display:flex;align-items:center;gap:14px;}
   .done-banner{color:var(--ok);font-weight:700;}
+  #replay{margin-left:auto;display:none;border:1px solid var(--accent);background:var(--accent);color:#fff;font:600 13px inherit;padding:6px 16px;border-radius:999px;cursor:pointer;}
+  #replay:hover{background:#0a5bc4;}
+  #replay.show{display:inline-block;}
 </style>
 </head>
 <body>
@@ -65,7 +68,7 @@
   <aside id="parties"><h2>Stakeholders</h2><div id="partyList"></div></aside>
   <section id="feed"></section>
 </main>
-<div id="status">Connecting…</div>
+<div id="status"><span id="statusText">Starting the election…</span><button id="replay" onclick="location.reload()">▶ Run the election again</button></div>
 
 <script>
 "use strict";
@@ -200,7 +203,8 @@ const PARTY_ORDER=["setup-component","control-component-0","control-component-1"
   "control-component-2","control-component-3","electoral-board","voting-server","verifier"];
 const PHASES=["setup","cards","voting","tally","verify"];
 const feed=document.getElementById("feed");
-const statusEl=document.getElementById("status");
+const statusEl=document.getElementById("statusText");
+const replayBtn=document.getElementById("replay");
 const partyList=document.getElementById("partyList");
 const timeline=document.getElementById("timeline");
 const partyEls={};
@@ -267,8 +271,9 @@ es.addEventListener("op",ev=>{ const e=JSON.parse(ev.data); count++; addOp(e);
 es.addEventListener("done",ev=>{ markLive(null);
   for(const s of timeline.children) s.className="phase done";
   statusEl.innerHTML='<span class="done-banner">✓ Election complete and verified.</span> '+count+' cryptographic operations rendered live.';
+  replayBtn.classList.add("show");
   es.close(); });
-es.onerror=()=>{ if(count===0) statusEl.textContent="Stream ended, or a run is already in progress — reload to restart."; };
+es.onerror=()=>{ if(count===0) statusEl.textContent="Waiting for the election to start…"; };
 </script>
 </body>
 </html>

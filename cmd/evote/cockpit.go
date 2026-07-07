@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io/fs"
 	"math/big"
+	"net"
 	"net/http"
-	"sync/atomic"
+	"os/exec"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -22,7 +25,8 @@ var (
 	cockpitOptions int
 	cockpitDelayMs int
 	cockpitTmux    bool
-	cockpitRunning atomic.Bool
+	cockpitNoOpen  bool
+	cockpitMu      sync.Mutex // serializes ceremonies (global trace context)
 )
 
 var cockpitCmd = &cobra.Command{
@@ -53,6 +57,7 @@ func init() {
 	cockpitCmd.Flags().IntVar(&cockpitOptions, "options", 3, "Number of voting options")
 	cockpitCmd.Flags().IntVar(&cockpitDelayMs, "delay", 350, "Milliseconds between events (pacing so it's watchable)")
 	cockpitCmd.Flags().BoolVar(&cockpitTmux, "tmux", false, "Terminal mode: one tmux pane per stakeholder instead of the browser")
+	cockpitCmd.Flags().BoolVar(&cockpitNoOpen, "no-open", false, "Do not open the browser automatically")
 	rootCmd.AddCommand(cockpitCmd)
 }
 
@@ -83,19 +88,44 @@ func runCockpit() error {
 	mux.HandleFunc("/events", cockpitEventsHandler)
 
 	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cockpitPort),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	// Bind the listener first so we only open the browser once we're accepting
+	// connections — and so a busy port fails with a clear message, not a race.
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cockpitPort))
+	if err != nil {
+		return fmt.Errorf("cannot listen on port %d (is another cockpit already running?): %w", cockpitPort, err)
 	}
 	url := fmt.Sprintf("http://localhost:%d/", cockpitPort)
 	fmt.Println("========================================")
 	fmt.Println(" Swiss Post E-Voting — Live Crypto Cockpit")
 	fmt.Println("========================================")
-	fmt.Printf(" Open %s in your browser.\n", url)
+	fmt.Printf(" Watching at %s\n", url)
 	fmt.Printf(" Voters: %d, Options: %d, pacing: %dms/event\n", cockpitVoters, cockpitOptions, cockpitDelayMs)
-	fmt.Println(" The election runs when the page connects; every crypto operation")
-	fmt.Println(" is rendered as typeset math with its real live values.")
-	return srv.ListenAndServe()
+	fmt.Println(" The election plays automatically when the page opens.")
+	fmt.Println(" Press Ctrl+C here to stop.")
+	if !cockpitNoOpen {
+		go openBrowser(url)
+	}
+	return srv.Serve(ln)
+}
+
+// openBrowser opens url in the default browser, cross-platform. Best-effort.
+func openBrowser(url string) {
+	time.Sleep(300 * time.Millisecond) // let Serve settle
+	var cmd string
+	var args []string
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = "open"
+	case "windows":
+		cmd, args = "rundll32", []string{"url.dll,FileProtocolHandler"}
+	default:
+		cmd = "xdg-open"
+	}
+	_ = exec.Command(cmd, append(args, url)...).Start()
 }
 
 // cockpitEventsHandler streams one ceremony's crypto events as Server-Sent
@@ -108,12 +138,10 @@ func cockpitEventsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The trace stream and its party/phase context are global, so only one
-	// ceremony may run at a time (this is a single-viewer desktop tool).
-	if !cockpitRunning.CompareAndSwap(false, true) {
-		http.Error(w, "a ceremony is already streaming; reload after it finishes", http.StatusConflict)
-		return
-	}
-	defer cockpitRunning.Store(false)
+	// ceremony runs at a time. A second viewer waits gracefully for the first to
+	// finish rather than getting an error (single-viewer desktop tool).
+	cockpitMu.Lock()
+	defer cockpitMu.Unlock()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
