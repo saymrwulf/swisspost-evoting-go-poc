@@ -68,8 +68,9 @@ make test           # runs cargo test + go test ./...
 ./evote netdemo --voters 10 --options 3
 ./evote netdemo --voters 3 --options 2 --verbose   # log every signed message
 
-# Watch the cryptography execute as live typeset math in the browser
-./evote cockpit --voters 3 --options 3        # open http://localhost:8090
+# Watch the cryptography execute as live math — two surfaces, one event stream:
+./evote cockpit --voters 3 --options 3        # browser: typeset MathML at http://localhost:8090
+./evote cockpit --tmux --voters 3             # terminal: one tmux pane per stakeholder
 
 # Serve presentations on local network (for iPad viewing)
 ./evote serve --port 8080
@@ -81,10 +82,18 @@ make test           # runs cargo test + go test ./...
 The `cockpit` command is a teaching instrument: it runs the full multi-party
 ceremony and streams **every cryptographic operation** — sampling, ElGamal
 encryption, Fiat-Shamir challenges, the Bayer-Groth shuffle, Ed25519 signatures,
-X25519 key agreement — to a browser page that renders each as **typeset
-mathematics with the real runtime values**, the instant it executes. The math is
-native MathML (no libraries, offline); a stakeholder sidebar highlights the acting
-party and a phase timeline tracks setup→cards→voting→tally→verify.
+X25519 key agreement — as **the mathematics that is executing, with the real
+runtime values**, the instant it runs. One `pkg/trace` event stream feeds two
+surfaces:
+
+- **Browser** (default): a self-contained page renders each operation as typeset
+  MathML (no libraries, offline). A stakeholder sidebar highlights the acting
+  party; a phase timeline tracks setup→cards→voting→tally→verify.
+- **Terminal** (`--tmux`): one tmux pane per stakeholder, each rendering its
+  party's operations as colored ASCII/Unicode math — the "autonomous parties"
+  view.
+
+`--delay` paces the events so a human can follow along.
 
 The `demo` command runs the whole protocol in one process. `netdemo` runs the
 **multi-party** architecture: every party is a separate endpoint holding only its
