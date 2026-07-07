@@ -81,7 +81,11 @@ function short(s){ if(s.length<=15) return s; return s.slice(0,8)+"…"+s.slice(
 // ============================================================
 const GREEK={sigma:"σ",gamma:"γ",rho:"ρ",pi:"π",phi:"φ",tau:"τ",lambda:"λ",mu:"μ",delta:"δ"};
 const OPS={cdot:"⋅",in:"∈",gets:"←",Vert:"∥",times:"×",oplus:"⊕",bmod:"mod",
+           circ:"∘",ast:"∗",sim:"∼",log:"log",prod:"∏",sum:"∑",
+           cdots:"⋯",ldots:"…",dots:"…",vdots:"⋮",ddots:"⋱",
            qquad:" ",quad:" "};
+// big operators get msubsup limits from a following _{}^{}
+const BIGOP={prod:"∏",sum:"∑"};
 const BB={Z:"ℤ",X:"𝕏",N:"ℕ",G:"𝔾",F:"𝔽",Q:"ℚ"};
 const CAL={H:"ℋ",R:"ℛ",C:"𝒞",E:"ℰ"};
 const MML="http://www.w3.org/1998/Math/MathML";
@@ -117,9 +121,17 @@ function render(src,values){
     const tk=toks[i];
     if(tk.t==="^"||tk.t==="_"){
       const base=nodes.pop()||mi("");
-      const nxt=toks[++i];
-      const sub=nxt.t==="grp"?groupOf(render(nxt.v,values)):renderOne(nxt,values);
-      nodes.push(el(tk.t==="^"?"msup":"msub",base,sub||mi("")));
+      const readScript=()=>{ const nxt=toks[++i]; return nxt&&nxt.t==="grp"?groupOf(render(nxt.v,values)):(nxt?renderOne(nxt,values):null)||mi(""); };
+      let sup=null,sub=null;
+      if(tk.t==="^") sup=readScript(); else sub=readScript();
+      // pair a complementary script if the next token supplies it (x_{..}^{..})
+      const nx=toks[i+1];
+      if(nx&&(nx.t==="^"||nx.t==="_")&&((nx.t==="^")!==(sup!=null))){
+        i++; if(nx.t==="^") sup=readScript(); else sub=readScript();
+      }
+      if(sub&&sup) nodes.push(el("msubsup",base,sub,sup));
+      else if(sub) nodes.push(el("msub",base,sub));
+      else nodes.push(el("msup",base,sup));
       continue;
     }
     const consume=()=>toks[++i];
@@ -157,7 +169,7 @@ function renderOne(tk,values,consume){
     if(v==="sqrt"){ const a=consume&&consume(); return el("msqrt",groupOf(render(a?a.v:"",values))); }
     if(v==="xleftarrow"){ const a=consume&&consume();
       return el("mover",mo("←"),el("mtext",a?a.v.replace(/\\\$/,"$"):"")); }
-    if(v==="big"||v==="Big"||v==="bigg"||v==="left"||v==="right"||v==="displaystyle") return null;
+    if(v==="big"||v==="Big"||v==="bigg"||v==="Bigg"||v==="left"||v==="right"||v==="displaystyle"||v==="textstyle") return null;
     // spacing control symbols: \, \: \; \  (backslash-space) -> spaces; \! -> nothing
     if(v==="!") return null;
     if(v==="," ){ const s=el("mspace"); s.setAttribute("width","0.17em"); return s; }

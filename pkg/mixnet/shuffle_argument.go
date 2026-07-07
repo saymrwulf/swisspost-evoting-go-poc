@@ -32,8 +32,8 @@ func GenShuffleArgument(
 
 	emitArgument("shuffle",
 		"Shuffle argument: prove C' is a permutation + re-encryption of C, without revealing π",
-		`\text{ShuffleArgument}:\ \prod_i C_i^{x^i} \;\sim\; \prod_i C'^{\,x^{\pi(i)}}_i \ \text{via commitments } \mathbf{c}_A, \mathbf{c}_B \text{ and challenges } x,y,z`,
-		"ShuffleArgument: bind C and C' through commitments c_A, c_B and challenges x, y, z",
+		`\text{ShuffleArgument}:\ \prod_i C_i^{\,x^{i}} \;\sim\; \prod_i C'^{\,x^{\pi(i)}}_i`,
+		"ShuffleArgument: Π_i C_i^{x^i} ~ Π_i C'_i^{x^π(i)}   (bound via c_A, c_B; challenges x,y,z)",
 		dims(m, n))
 
 	// 1. Convert permutation to m×n matrix A
