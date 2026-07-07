@@ -1016,6 +1016,7 @@ r = <span class="red">833704513946265251405968611993787771762...</span>
       <span class="cmt">"The output ciphertexts are the correct multi-exponentiations</span>
       <span class="cmt"> of the inputs with the permutation matrix as exponents."</span></div>
     <div class="analogy-box"><strong>Simplified intuition:</strong> Imagine you have 6 sealed boxes numbered 1-6. You rearrange them and put them in new boxes. The ProductArgument proves "I used each number exactly once" (it's a valid permutation). The MultiExponentiationArgument proves "the new boxes contain the same items as the old boxes" (the ciphertexts were correctly re-encrypted, not swapped for fakes).</div>
+    <div class="insight-box"><strong>Watch it happen.</strong> Run <code>evote cockpit</code> (browser) or <code>evote cockpit --tmux</code> (terminal): as the mix-net executes, each of these sub-arguments is rendered as live typeset mathematics with the real runtime values, in the order it is constructed &mdash; the Pedersen commitment to the permutation matrix, then the Product / Hadamard / Zero / SingleValueProduct / MultiExponentiation arguments, then the partial decryptions. The tree above is not a diagram of the code; it <em>is</em> the code, narrating itself.</div>
   `
 },
 

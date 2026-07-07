@@ -80,11 +80,19 @@ make test           # runs cargo test + go test ./...
 ```
 
 The `cockpit` command is a teaching instrument: it runs the full multi-party
-ceremony and streams **every cryptographic operation** — sampling, ElGamal
-encryption, Fiat-Shamir challenges, the Bayer-Groth shuffle, Ed25519 signatures,
-X25519 key agreement — as **the mathematics that is executing, with the real
-runtime values**, the instant it runs. One `pkg/trace` event stream feeds two
-surfaces:
+ceremony and streams **every cryptographic operation** as **the mathematics that
+is executing, with the real runtime values**, the instant it runs. It goes down
+to the level of the Swiss Post `crypto-primitives` class structure — you can watch
+the Bayer-Groth shuffle proof being *constructed*, not just referenced:
+
+- ElGamal encryption, Fiat-Shamir challenges, Ed25519 signatures, X25519 key agreement
+- **Pedersen matrix commitments** (`CommitmentService`)
+- **all five Bayer-Groth sub-arguments** (`ShuffleArgument`, `ProductArgument`,
+  `HadamardArgument`, `ZeroArgument`, `SingleValueProductArgument`,
+  `MultiExponentiationArgument`)
+- **partial decryption + decryption proofs** (`DecryptionProofService`)
+
+One `pkg/trace` event stream feeds two surfaces:
 
 - **Browser** (default): a self-contained page renders each operation as typeset
   MathML (no libraries, offline). A stakeholder sidebar highlights the acting
